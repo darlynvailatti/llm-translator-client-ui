@@ -21,7 +21,6 @@ export function Breadcrumb({ items }: BreadcrumbProps) {
     <Box sx={{ display: "flex", alignItems: "center" }}>
       <IconButton onClick={() => navigate(-1)} size="small" sx={{ mr: 1 }}>
         <ArrowBack fontSize="small" />
-        <Typography variant="body1">Go back</Typography>
       </IconButton>
       <Breadcrumbs aria-label="breadcrumb">
         {items.map((item, index) => (

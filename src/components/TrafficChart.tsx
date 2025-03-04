@@ -3,17 +3,19 @@ import type { NameType, ValueType } from "recharts/types/component/DefaultToolti
 import Box from "@mui/material/Box"
 import Paper from "@mui/material/Paper"
 import Typography from "@mui/material/Typography"
+import { useEffect, useState } from "react"
 
 interface TrafficChartProps {
-  data: { name: string; success: number; failed: number }[]
+  data: any
   height?: number
+  compact?: boolean
 }
 
 const CustomTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameType>) => {
   if (active && payload && payload.length) {
     return (
       <Paper elevation={3} sx={{ p: 1, zIndex: 1000 }}>
-        <Typography variant="body2" color="text.secondary">{`Day ${label}`}</Typography>
+        <Typography variant="body2" color="text.secondary">{`Time: ${new Date(label).toLocaleString()}`}</Typography>
         <Typography variant="body2" color="success.main">{`Success: ${payload[0].value}`}</Typography>
         <Typography variant="body2" color="error.main">{`Failed: ${payload[1].value}`}</Typography>
       </Paper>
@@ -23,16 +25,57 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameT
   return null
 }
 
-export function TrafficChart({ data, height = 40 }: TrafficChartProps) {
+export function TrafficChart({ data, height = 40, compact = false }: TrafficChartProps) {
+
+  const [series, setSeries] = useState<any[]>([])
+
+  useEffect(() => {
+    const groupedData: any = {};
+
+    Object.keys(data).forEach((key) => {
+      data[key].forEach((item: any) => {
+        const timestamp = item[0]
+        const count = item[1];
+
+        if (!groupedData[timestamp]) {
+          groupedData[timestamp] = {
+            success: 0,
+            failure: 0,
+          };
+        }
+        groupedData[timestamp][key.toLowerCase()] = count;
+      });
+    });
+
+    const processedSeries: any = []
+    Object.keys(groupedData).forEach((key) => {
+      const entry = { ...groupedData[key], name: parseInt(key) * 1000 };
+      if (entry.success !== 0 || entry.failure !== 0) {
+        processedSeries.push(entry);
+      }
+    });
+
+    setSeries(processedSeries);
+  }, [data])
+
   return (
     <Box sx={{ position: "relative", zIndex: 10 }}>
       <ResponsiveContainer width="100%" height={height}>
-        <LineChart data={data}>
-          <XAxis dataKey="name" hide />
+        <LineChart data={series}>
+
+          {compact && <XAxis hide />}
+
+          {!compact && <XAxis
+            dataKey="name"
+            type="number"
+            domain={['dataMin', 'dataMax']}
+            tickFormatter={(tick) => new Date(tick).toLocaleString()}
+          />}
+
           <YAxis hide />
           <Tooltip content={<CustomTooltip />} />
           <Line type="monotone" dataKey="success" stroke="#2e7d32" strokeWidth={2} dot={false} />
-          <Line type="monotone" dataKey="failed" stroke="#d32f2f" strokeWidth={2} dot={false} />
+          <Line type="monotone" dataKey="failure" stroke="#d32f2f" strokeWidth={2} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </Box>

@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
 import { ThemeProvider, createTheme } from "@mui/material/styles"
 import CssBaseline from "@mui/material/CssBaseline"
 import Box from "@mui/material/Box"
@@ -9,7 +9,10 @@ import Dashboard from "./pages/Dashboard"
 import EndpointDetail from "./pages/EndpointDetail"
 import SpecDetail from "./pages/SpecDetail"
 import NewEndpoint from "./pages/NewEndpoint"
+import Login from "./pages/Login"
 import "./index.css"
+import authManager from "./utils/auth"
+import { useEffect, useState } from "react"
 
 // Create a theme instance
 const theme = createTheme({
@@ -38,87 +41,72 @@ const theme = createTheme({
   },
 })
 
-function App() {
-  return (
-    <Router>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <Box sx={{ display: "flex", minHeight: "100vh" }}>
-          <Box
-            component="aside"
-            sx={{
-              width: 56,
-              borderRight: 1,
-              borderColor: "divider",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              py: 2,
-            }}
-          >
-            {/* Logo or app icon at the top */}
-            <Box
-              sx={{
-                width: 32,
-                height: 32,
-                border: 1,
-                borderColor: "text.primary",
-                borderRadius: 1,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                mb: 4,
-              }}
-            >
-              <Box
-                sx={{
-                  width: 16,
-                  height: 16,
-                  border: 1,
-                  borderColor: "text.primary",
-                  transform: "rotate(45deg)",
-                }}
-              />
-            </Box>
+const PrivateRoute: React.FC<{ component: React.FC }> = ({ component: Component, ...rest }) => {
+  const isAuthenticated = authManager.isAuthenticated();
+  return isAuthenticated ?
+    <Box sx={{ display: "flex" }}>
+      <Box sx={{ display: "flex", minHeight: "100vh" }}>
 
-            {/* Endpoints menu item */}
-            <Link to="/" style={{ textDecoration: "none" }}>
-              <IconButton
-                title="Endpoints"
-                sx={{
-                  mb: "auto",
-                  "&:hover": {
-                    backgroundColor: "action.hover",
-                  },
-                }}
-              >
-                <NetworkCheck />
-              </IconButton>
-            </Link>
+        <Box
+          component="aside"
+          sx={{
+            width: 56,
+            borderRight: 1,
+            borderColor: "divider",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            py: 2,
+          }}
+        >
 
-            {/* Logout button at the bottom */}
+          {/* Endpoints menu item */}
+          <Link to="/" style={{ textDecoration: "none" }}>
             <IconButton
-              title="Logout"
+              title="Endpoints"
               sx={{
+                mb: "auto",
                 "&:hover": {
                   backgroundColor: "action.hover",
                 },
               }}
             >
-              <Logout />
+              <NetworkCheck />
             </IconButton>
-          </Box>
-          <Box component="main" sx={{ flexGrow: 1 }}>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/endpoints/new" element={<NewEndpoint />} />
-              <Route path="/endpoints/:id" element={<EndpointDetail />} />
-              <Route path="/endpoints/:id/:specId" element={<SpecDetail />} />
-            </Routes>
-          </Box>
+          </Link>
+
+          {/* Logout button at the bottom */}
+          <IconButton
+            title="Logout">
+            <Logout />
+          </IconButton>
         </Box>
-      </ThemeProvider>
-    </Router>
+
+      </Box>
+      <Box component="main" sx={{ flexGrow: 1 }}>
+        <Component {...rest} />
+      </Box>
+    </Box>
+    : <Navigate to="/login" />;
+};
+
+function App() {
+
+  const isAuthenticated = authManager.isAuthenticated()
+
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Router>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<PrivateRoute component={Dashboard} />} />
+          <Route path="/endpoints/new" element={<PrivateRoute component={NewEndpoint} />} />
+          <Route path="/endpoints/:id" element={<PrivateRoute component={EndpointDetail} />} />
+          <Route path="/endpoints/:id/:specId" element={<PrivateRoute component={SpecDetail} />} />
+        </Routes>
+      </Router>
+    </ThemeProvider>
   )
 }
 
