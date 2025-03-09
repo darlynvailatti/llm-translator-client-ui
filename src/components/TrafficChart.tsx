@@ -59,8 +59,10 @@ export function TrafficChart({ data, height = 40, compact = false }: TrafficChar
   }, [data])
 
   return (
-    <Box sx={{ position: "relative", zIndex: 10 }}>
+    <Box >
+      {/* {JSON.stringify(series)} */}
       <ResponsiveContainer width="100%" height={height}>
+        
         <LineChart data={series}>
 
           {compact && <XAxis hide />}

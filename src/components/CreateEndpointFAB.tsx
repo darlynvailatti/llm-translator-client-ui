@@ -1,27 +1,35 @@
 import { useNavigate } from "react-router-dom"
 import Fab from "@mui/material/Fab"
 import { Add } from "@mui/icons-material"
+import { Tooltip } from "@mui/material"
 
-export function CreateEndpointFAB() {
+export interface CreateFABProps {
+  to: string
+  label?: string
+}
+
+export function CreateFAB(props: CreateFABProps) {
   const navigate = useNavigate()
 
   const handleClick = () => {
-    navigate("/endpoints/new")
+    navigate(props.to)
   }
 
   return (
-    <Fab
-      color="primary"
-      aria-label="Create new endpoint"
-      onClick={handleClick}
-      sx={{
-        position: "fixed",
-        bottom: 24,
-        right: 24,
-      }}
-    >
-      <Add />
-    </Fab>
+    <Tooltip title={props.label ?? "Create"}>
+      <Fab
+        color="primary"
+        aria-label={props.label ?? "Create"}
+        onClick={handleClick}
+        sx={{
+          position: "fixed",
+          bottom: 24,
+          right: 24,
+        }}
+      >
+        <Add />
+      </Fab>
+    </Tooltip>
   )
 }
 

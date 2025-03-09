@@ -12,7 +12,8 @@ import NewEndpoint from "./pages/NewEndpoint"
 import Login from "./pages/Login"
 import "./index.css"
 import authManager from "./utils/auth"
-import { useEffect, useState } from "react"
+import { ToastContainer } from "react-toastify"
+import NewSpec from "./pages/NewSpec"
 
 // Create a theme instance
 const theme = createTheme({
@@ -27,6 +28,9 @@ const theme = createTheme({
       default: "#ffffff",
     },
   },
+  shape: {
+    borderRadius: 15
+  },
   typography: {
     fontFamily: "'Inter', sans-serif",
   },
@@ -36,6 +40,11 @@ const theme = createTheme({
         root: {
           textTransform: "none",
         },
+      },
+    },
+    MuiPaper: {
+      defaultProps: {
+        variant: "outlined",
       },
     },
   },
@@ -97,13 +106,16 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      <ToastContainer />
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<PrivateRoute component={Dashboard} />} />
           <Route path="/endpoints/new" element={<PrivateRoute component={NewEndpoint} />} />
           <Route path="/endpoints/:id" element={<PrivateRoute component={EndpointDetail} />} />
-          <Route path="/endpoints/:id/:specId" element={<PrivateRoute component={SpecDetail} />} />
+          <Route path="/endpoints/:id/specs/:specId" element={<PrivateRoute component={SpecDetail} />} />
+          <Route path="/endpoints/:id/new-spec" element={<PrivateRoute component={NewSpec} /> }/>
+          <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} />} />
         </Routes>
       </Router>
     </ThemeProvider>

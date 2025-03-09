@@ -3,7 +3,7 @@ import Grid from "@mui/material/Grid"
 import Box from "@mui/material/Box"
 import { EndpointCard } from "../components/EndpointCard"
 import { Breadcrumb } from "../components/Breadcrumb"
-import { CreateEndpointFAB } from "../components/CreateEndpointFAB"
+import { CreateFAB } from "../components/CreateEndpointFAB"
 import { getEndpoints } from "../api/endpoints"
 import { useEffect, useState } from "react"
 import { TranslationEndpointList } from "../api/types"
@@ -35,7 +35,7 @@ export default function Dashboard() {
           </Grid>
         ))}
       </Grid>
-      <CreateEndpointFAB />
+      <CreateFAB to="/endpoints/new" label="Create new endpoint"/>
     </Container>
   )
 }

@@ -4,15 +4,42 @@ import Paper from "@mui/material/Paper"
 import Grid from "@mui/material/Grid"
 import Typography from "@mui/material/Typography"
 import TextField from "@mui/material/TextField"
-import FormControl from "@mui/material/FormControl"
-import InputLabel from "@mui/material/InputLabel"
-import Select from "@mui/material/Select"
-import MenuItem from "@mui/material/MenuItem"
 import Button from "@mui/material/Button"
-import { Badge } from "../components/Badge"
 import { Breadcrumb } from "../components/Breadcrumb"
+import { useState } from "react"
+import { NewTranslationEndpoint } from "../api/types"
+import { Editor } from "@monaco-editor/react"
+import { Stack } from "@mui/material"
+import { createEndpoint } from "../api/endpoints"
+import { useNavigate } from "react-router-dom"
+import { toast } from "react-toastify"
 
 export default function NewEndpoint() {
+
+  const [newEndpoint, setNewEndpoint] = useState<NewTranslationEndpoint>({
+    key: "",
+    name: "",
+    definition: {}
+  })
+
+  const navigate = useNavigate()
+
+  function updateField(field: string, value: string) {
+    setNewEndpoint({ ...newEndpoint, [field]: value })
+  }
+
+  async function create() {
+    try{
+      // Call the createEndpoint API
+      const created = await createEndpoint(newEndpoint)
+      toast.success(`Endpoint created successfully`)
+      // Redirect to the endpoint detail page
+      navigate(`/endpoints/${created.uuid}`)
+    } catch (error) {
+      toast.error("Failed to create endpoint")
+    }
+  }
+
   return (
     <Container maxWidth={false} sx={{ p: 3 }}>
       <Box sx={{ mb: 3 }}>
@@ -25,59 +52,58 @@ export default function NewEndpoint() {
         {/* Endpoint info card */}
         <Paper sx={{ p: 2 }}>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={9}>
+
+            <Grid item xs={12}>
+              <TextField
+                id="endpoint-key"
+                label="Endpoint Key"
+                fullWidth
+                placeholder="Enter Key"
+                variant="standard"
+                value={newEndpoint.key}
+                onChange={(e) => updateField("key", e.target.value)}
+              />
+            </Grid>
+
+            <Grid item xs={12}>
               <TextField
                 id="endpoint-name"
                 label="Endpoint Name"
-                variant="outlined"
                 fullWidth
                 placeholder="Enter endpoint name"
-                size="small"
+                variant="standard"
+                value={newEndpoint.name}
+                onChange={(e) => updateField("name", e.target.value)}
               />
             </Grid>
-            <Grid item xs={3} sx={{ display: "flex", justifyContent: "flex-end" }}>
-              <Badge variant="inactive">Inactive</Badge>
+            <Grid item xs={12}>
+              {/* Text area mui */}
+              <Stack spacing={2}>
+                <Typography variant="body2" color="text.secondary">
+                  Definition
+                </Typography>
+                <Editor
+                  height="20vh" defaultLanguage="json" defaultValue="{}"
+                  onChange={(value) => {
+                    let parsedJson = {}
+                    if (value) {
+                      try {
+                        parsedJson = JSON.parse(value)
+                      } catch (error) {
+                        parsedJson = {}
+                      }
+                      setNewEndpoint({ ...newEndpoint, definition: parsedJson })
+                    }
+                  }}
+                />
+              </Stack>
             </Grid>
           </Grid>
         </Paper>
 
-        {/* Input/Output Formats */}
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="subtitle1" fontWeight="medium" sx={{ mb: 2 }}>
-                Input Format
-              </Typography>
-              <FormControl fullWidth>
-                <InputLabel id="input-format-label">Format</InputLabel>
-                <Select labelId="input-format-label" id="input-format" label="Format" defaultValue="XML">
-                  <MenuItem value="XML">XML</MenuItem>
-                  <MenuItem value="JSON">JSON</MenuItem>
-                  <MenuItem value="CSV">CSV</MenuItem>
-                </Select>
-              </FormControl>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="subtitle1" fontWeight="medium" sx={{ mb: 2 }}>
-                Output Format
-              </Typography>
-              <FormControl fullWidth>
-                <InputLabel id="output-format-label">Format</InputLabel>
-                <Select labelId="output-format-label" id="output-format" label="Format" defaultValue="JSON">
-                  <MenuItem value="JSON">JSON</MenuItem>
-                  <MenuItem value="XML">XML</MenuItem>
-                  <MenuItem value="CSV">CSV</MenuItem>
-                </Select>
-              </FormControl>
-            </Paper>
-          </Grid>
-        </Grid>
-
         {/* Save Button */}
         <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-          <Button variant="contained" color="primary">
+          <Button variant="contained" color="primary" onClick={create}>
             Create Endpoint
           </Button>
         </Box>
