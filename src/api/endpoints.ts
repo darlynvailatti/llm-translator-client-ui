@@ -1,5 +1,6 @@
+import { AxiosError } from "axios"
 import { httpClient } from "./client"
-import { TranslationEndpointList, TranslationEndpointDetail, NewTranslationEndpoint } from "./types"
+import { TranslationEndpointList, TranslationEndpointDetail, NewTranslationEndpoint, TranslationRequest, TranslationResponse } from "./types"
 
 export const getEndpoints = async (): Promise<[TranslationEndpointList]> => {
     const endpoints = (await httpClient.get<[TranslationEndpointList]>('/endpoints')).data
@@ -20,3 +21,29 @@ export const updateEndpoint = async (id: string, data: NewTranslationEndpoint): 
     const endpoint = (await httpClient.put<TranslationEndpointDetail>(`/endpoints/${id}/`, data)).data
     return endpoint
 }
+
+export const translate = async (translationRequest: TranslationRequest): Promise<TranslationResponse> => {
+    let response: any = null
+    try {
+        
+        response = (await httpClient.post<TranslationResponse>(
+            `/translate/${translationRequest.endpoint_uuid}`,
+            translationRequest.payload)
+        ).data
+    } catch (error) {
+        const errorResponse = (error as AxiosError).response
+        if(errorResponse?.data) {
+            response = errorResponse.data
+        }else{
+            response = {
+                success: false,
+                message: `Unknown failure ${error}`,
+                duration: 0,
+                content_type: "",
+                body: ""
+            }
+        }
+
+    }
+    return response
+}   

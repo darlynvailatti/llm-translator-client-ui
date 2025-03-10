@@ -23,8 +23,8 @@ export function CreateFAB(props: CreateFABProps) {
         onClick={handleClick}
         sx={{
           position: "fixed",
-          bottom: 24,
-          right: 24,
+          top: 10,
+          right: 25,
         }}
       >
         <Add />

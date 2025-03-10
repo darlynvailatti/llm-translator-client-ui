@@ -9,12 +9,13 @@ import { TrafficChart } from "./TrafficChart"
 interface EndpointCardProps {
   id: string
   name: string
+  is_active: boolean
   failed: number
   success: number
   traffic: object
 }
 
-export function EndpointCard({ id, name, failed, success, traffic }: EndpointCardProps) {
+export function EndpointCard({ id, name, is_active, failed, success, traffic }: EndpointCardProps) {
   return (
     <Link to={`/endpoints/${id}`} style={{ textDecoration: "none" }}>
       <Card
@@ -40,7 +41,7 @@ export function EndpointCard({ id, name, failed, success, traffic }: EndpointCar
             >
               {name}
             </Typography>
-            <Badge variant="active">Active</Badge>
+            <Badge variant={is_active ? "active" : "inactive" }>{is_active ? "Active" : "Inactive"}</Badge>
           </Box>
           <Box sx={{ height: 40 }}>
             <TrafficChart data={traffic} compact/>

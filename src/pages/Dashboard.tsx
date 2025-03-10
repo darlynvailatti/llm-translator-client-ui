@@ -20,7 +20,7 @@ export default function Dashboard() {
   return (
     <Container maxWidth={false} sx={{ p: 3 }}>
       <Box sx={{ mb: 3 }}>
-        <Breadcrumb items={[{ label: "My Account" }, { label: "Endpoints" }]} />
+        <Breadcrumb items={[{ label: "My Account" }, { label: "Endpoints" }]} back={false}/>
       </Box>
       <Grid container spacing={2}>
         {endpoints.map((endpoint) => (
@@ -28,6 +28,7 @@ export default function Dashboard() {
             <EndpointCard
               id={endpoint.uuid}
               name={endpoint.name}
+              is_active={endpoint.is_active}
               failed={endpoint.total_failure}
               success={endpoint.total_success}
               traffic={endpoint.traffic}

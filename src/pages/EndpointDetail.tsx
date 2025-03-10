@@ -11,19 +11,29 @@ import { Badge } from "../components/Badge"
 import { TrafficChart } from "../components/TrafficChart"
 import { Breadcrumb } from "../components/Breadcrumb"
 import { useEffect, useState } from "react"
-import { getEndpoint } from "../api/endpoints"
-import { TranslationEndpointDetail, TranslationSpecList } from "../api/types"
+import { getEndpoint, updateEndpoint } from "../api/endpoints"
+import { TranslationEndpointDetail, TranslationSpecList, UpdateTranslationEndpoint } from "../api/types"
 import { getSpecs } from "../api/specs"
 import { format } from "date-fns"
-import { Stack, TextField } from "@mui/material"
+import { Button, Stack, Switch, TextField } from "@mui/material"
 import { CreateFAB } from "../components/CreateEndpointFAB"
 import { DocumentScanner } from "@mui/icons-material"
+import { toast } from "react-toastify"
+import EndpointTranslationDrawer from "../components/EndpointTranslationDrawer"
 
 export default function EndpointDetail() {
   const { id } = useParams<{ id: string }>()
 
-  const [endpoint, setEndpoint] = useState<TranslationEndpointDetail>()
+  const [readOnlyEndpoint, setReadOnlyEndpoint] = useState<TranslationEndpointDetail>()
+  const [editableEndpoint, setEditableEndpoint] = useState<UpdateTranslationEndpoint>({
+    uuid: "",
+    key: "",
+    name: "",
+    is_active: false,
+    definition: {}
+  })
   const [specs, setSpecs] = useState<[TranslationSpecList]>()
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   const linkToCreateNewSpec = `/endpoints/${id}/new-spec`
 
@@ -33,7 +43,14 @@ export default function EndpointDetail() {
       getEndpoint(id).then((data) => {
         data.created_at = format(new Date(data.created_at), "dd/MM/yyyy HH:mm:ss")
         data.updated_at = format(new Date(data.updated_at), "dd/MM/yyyy HH:mm:ss")
-        setEndpoint(data)
+        setReadOnlyEndpoint(data)
+        setEditableEndpoint({
+          uuid: data.uuid,
+          key: data.key,
+          name: data.name,
+          is_active: data.is_active,
+          definition: data.definition
+        })
 
         // Fetch endpoint specifications
         getSpecs(id).then((data) => {
@@ -41,6 +58,31 @@ export default function EndpointDetail() {
         })
       })
   }, [id])
+
+  function updateField(field: string, value: any) {
+    if (!editableEndpoint) return
+    setEditableEndpoint({ ...editableEndpoint, [field]: value })
+  }
+
+  async function handleUpdate() {
+    // Call the updateEndpoint API
+    if (!id || !editableEndpoint) return
+
+    try {
+      await updateEndpoint(id, editableEndpoint)
+      toast.success("Endpoint updated successfully")
+    } catch (error) {
+      toast.error("Failed to update endpoint: " + error)
+    }
+  }
+
+  function handleTranslate() {
+    // Call the translate API
+    if (!id) return
+
+    setDrawerOpen(true)
+
+  }
 
 
   return (
@@ -51,9 +93,17 @@ export default function EndpointDetail() {
         />
       </Box>
 
-      {endpoint === undefined && <Typography variant="body1">Loading...</Typography>}
+      <EndpointTranslationDrawer
+        endpointId={editableEndpoint.uuid}
+        endpointKey={editableEndpoint.key}
+        endpointName={editableEndpoint.name}
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+      />
 
-      {endpoint ? <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      {readOnlyEndpoint === undefined && <Typography variant="body1">Loading...</Typography>}
+
+      {readOnlyEndpoint ? <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
         {/* Endpoint info card */}
         <Paper>
           <Stack spacing={2} padding={2}>
@@ -61,34 +111,47 @@ export default function EndpointDetail() {
               <Grid item xs={6} sx={{ mr: 1 }}>
                 <TextField
                   label="Key"
-                  defaultValue={endpoint.key}
+                  defaultValue={readOnlyEndpoint.key}
                   variant="standard"
                   fullWidth
+                  onChange={(evn) => updateField("key", evn.target.value)}
                 />
               </Grid>
               <Grid item xs={2}>
                 <Typography variant="body2" color="text.secondary">
                   Created At
                 </Typography>
-                <Typography variant="body1">{endpoint.created_at}</Typography>
+                <Typography variant="body1">{readOnlyEndpoint.created_at}</Typography>
               </Grid>
               <Grid item xs={2}>
                 <Typography variant="body2" color="text.secondary">
                   Updated At
                 </Typography>
-                <Typography variant="body1">{endpoint.updated_at}</Typography>
+                <Typography variant="body1">{readOnlyEndpoint.updated_at}</Typography>
               </Grid>
               <Grid item xs={1} sx={{ display: "flex", justifyContent: "flex-end" }}>
-                <Badge variant="active">Active</Badge>
+                <Stack padding={1}>
+                  <Typography variant="body2" color="text.secondary">
+                    Active
+                  </Typography>
+                  <Switch
+                    color="primary"
+                    checked={editableEndpoint.is_active}
+                    onChange={() => {
+                      updateField("is_active", !editableEndpoint.is_active)
+                    }}
+                  />
+                </Stack>
               </Grid>
             </Grid>
 
             <TextField
               label="Name"
-              defaultValue={endpoint.name}
+              defaultValue={editableEndpoint.name}
               variant="standard"
               fullWidth
               multiline
+              onChange={(evn) => updateField("name", evn.target.value)}
             />
           </Stack>
         </Paper>
@@ -98,12 +161,12 @@ export default function EndpointDetail() {
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
             Traffic
           </Typography>
-          {JSON.stringify(endpoint.traffic) === "{}" ?
+          {JSON.stringify(readOnlyEndpoint.traffic) === "{}" ?
             <Box sx={{ height: 160 }} alignContent={"center"} justifyItems={"center"}>
               <Typography variant="body1" color="text.secondary">No traffic yet</Typography>
             </Box>
             : <Box>
-              <TrafficChart data={endpoint.traffic} height={240} />
+              <TrafficChart data={readOnlyEndpoint.traffic} height={240} />
             </Box>}
 
           <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}>
@@ -112,7 +175,7 @@ export default function EndpointDetail() {
                 Failed
               </Typography>
               <Typography variant="h4" fontWeight="bold">
-                {endpoint.total_failure}
+                {readOnlyEndpoint.total_failure}
               </Typography>
             </Box>
             <Box>
@@ -120,7 +183,7 @@ export default function EndpointDetail() {
                 Success
               </Typography>
               <Typography variant="h4" fontWeight="bold">
-                {endpoint.total_success}
+                {readOnlyEndpoint.total_success}
               </Typography>
             </Box>
           </Box>
@@ -162,6 +225,16 @@ export default function EndpointDetail() {
             </Box> : null}
           </List>
         </Paper>
+
+        {/* Save Button */}
+        <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+          <Button variant="contained" color="primary" onClick={handleTranslate}>
+            Translate
+          </Button>
+          <Button variant="contained" color="primary" onClick={handleUpdate}>
+            Save
+          </Button>
+        </Box>
       </Box> : null}
 
       <CreateFAB to={linkToCreateNewSpec} label="Create new spec" />

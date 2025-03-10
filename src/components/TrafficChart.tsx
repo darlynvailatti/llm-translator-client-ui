@@ -4,6 +4,7 @@ import Box from "@mui/material/Box"
 import Paper from "@mui/material/Paper"
 import Typography from "@mui/material/Typography"
 import { useEffect, useState } from "react"
+import { MAIN_COLOR, SECONDARY_COLOR } from "../theme"
 
 interface TrafficChartProps {
   data: any
@@ -16,8 +17,8 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameT
     return (
       <Paper elevation={3} sx={{ p: 1, zIndex: 1000 }}>
         <Typography variant="body2" color="text.secondary">{`Time: ${new Date(label).toLocaleString()}`}</Typography>
-        <Typography variant="body2" color="success.main">{`Success: ${payload[0].value}`}</Typography>
-        <Typography variant="body2" color="error.main">{`Failed: ${payload[1].value}`}</Typography>
+        <Typography variant="body2" color={MAIN_COLOR}>{`Success: ${payload[0].value}`}</Typography>
+        <Typography variant="body2" color={SECONDARY_COLOR}>{`Failed: ${payload[1].value}`}</Typography>
       </Paper>
     )
   }
@@ -76,8 +77,8 @@ export function TrafficChart({ data, height = 40, compact = false }: TrafficChar
 
           <YAxis hide />
           <Tooltip content={<CustomTooltip />} />
-          <Line type="monotone" dataKey="success" stroke="#2e7d32" strokeWidth={2} dot={false} />
-          <Line type="monotone" dataKey="failure" stroke="#d32f2f" strokeWidth={2} dot={false} />
+          <Line type="monotone" dataKey="success" stroke={MAIN_COLOR} strokeWidth={2} dot={false} />
+          <Line type="monotone" dataKey="failure" stroke={SECONDARY_COLOR} strokeWidth={2} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </Box>

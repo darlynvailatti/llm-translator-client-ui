@@ -25,7 +25,7 @@ export interface TranslationEndpointDetail {
     name: string
     key: string
     is_active: boolean
-    definition: string
+    definition: object
     created_at: string
     updated_at: string
     total_success: number
@@ -36,6 +36,14 @@ export interface TranslationEndpointDetail {
 export interface NewTranslationEndpoint {
     name: string
     key: string
+    definition: object
+}
+
+export interface UpdateTranslationEndpoint {
+    uuid: string
+    name: string
+    key: string
+    is_active: boolean
     definition: object
 }
 
@@ -85,3 +93,17 @@ export interface TranslationSpecDetail {
     created_at: string
     updated_at: string
 }
+
+export interface TranslationRequest {
+    endpoint_uuid: string
+    payload: string
+}
+
+export interface TranslationResponse {
+    success: boolean
+    message: string
+    duration: number
+    content_type: string
+    body: string
+}
+

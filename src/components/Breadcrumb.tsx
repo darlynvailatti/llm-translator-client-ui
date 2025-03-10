@@ -8,20 +8,23 @@ import { ArrowBack } from "@mui/icons-material"
 import MuiLink from "@mui/material/Link"
 
 interface BreadcrumbProps {
+  back?: boolean
   items: {
     label: string
     href?: string
   }[]
 }
 
-export function Breadcrumb({ items }: BreadcrumbProps) {
+export function Breadcrumb({ items, back = true}: BreadcrumbProps) {
   const navigate = useNavigate()
 
   return (
     <Box sx={{ display: "flex", alignItems: "center" }}>
-      <IconButton onClick={() => navigate(-1)} size="small" sx={{ mr: 1 }}>
-        <ArrowBack fontSize="small" />
-      </IconButton>
+      {back && (
+        <IconButton onClick={() => navigate(-1)} size="small" sx={{ mr: 1 }}>
+          <ArrowBack fontSize="small" />
+        </IconButton>
+      )}
       <Breadcrumbs aria-label="breadcrumb">
         {items.map((item, index) => (
           <Box key={index}>
