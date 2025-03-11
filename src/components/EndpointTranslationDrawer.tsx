@@ -1,6 +1,6 @@
 import { Editor } from "@monaco-editor/react";
 import { Alert, Button, CircularProgress, Drawer, Grid, Paper, Stack, Typography } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { translate } from "../api/endpoints";
 import { toast } from "react-toastify";
 import { TranslationResponse } from "../api/types";
@@ -13,11 +13,22 @@ export interface EndpointTranslationDrawerProps {
     endpointName: string;
 }
 
+const MAPPED_LANGS_TO_MONACO_LANGS: { [key: string]: string } = {
+    "application/json": "json",
+    "application/xml": "xml",
+    "text/html": "html",
+}
+
 export default function EndpointTranslationDrawer(props: EndpointTranslationDrawerProps) {
 
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const [copyAndPastePayload, setCopyAndPastePayload] = useState<string>("")
     const [translationResponse, setTranslationResponse] = useState<TranslationResponse>()
+    const [contentToBeTranslated, setContentToBeTranslated] = useState<string>("")
+
+    useEffect(() => {
+        setContentToBeTranslated(copyAndPastePayload)
+    }, [copyAndPastePayload])
 
     async function handleTranslate() {
         try {
@@ -68,7 +79,7 @@ export default function EndpointTranslationDrawer(props: EndpointTranslationDraw
                             <Editor
                                 height="180px"
                                 language="auto"
-                                defaultValue={"// Paste your payload here..."}
+                                defaultValue={`// Paste your content/payload here...`}
                                 value={copyAndPastePayload}
                                 onChange={(value) => value ? setCopyAndPastePayload(value) : setCopyAndPastePayload("")}
                             />
@@ -77,12 +88,12 @@ export default function EndpointTranslationDrawer(props: EndpointTranslationDraw
                 </Grid>
             </Grid>
 
-            <Button variant="contained" color="primary" onClick={handleTranslate} disabled={isLoading}>
+            <Button variant="contained" color="primary" onClick={handleTranslate} disabled={isLoading || !contentToBeTranslated || contentToBeTranslated === ""}>
                 Translate
                 {isLoading && <CircularProgress size={20} sx={{ ml: 1 }} />}
             </Button>
 
-            
+
 
             {!isLoading && translationResponse ?
                 <Alert severity={translationResponse?.success ? "success" : "error"} >
@@ -122,7 +133,7 @@ export default function EndpointTranslationDrawer(props: EndpointTranslationDraw
                     <Typography variant="h6" fontWeight={"bold"}>Translated Payload</Typography>
                     <Editor
                         height="180px"
-                        language="auto"
+                        language={MAPPED_LANGS_TO_MONACO_LANGS[translationResponse?.content_type] || "auto"}
                         value={translationResponse?.body}
                     />
                 </Stack>

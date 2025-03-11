@@ -1,6 +1,6 @@
 import { AxiosError } from "axios"
 import { httpClient } from "./client"
-import { TranslationEndpointList, TranslationEndpointDetail, NewTranslationEndpoint, TranslationRequest, TranslationResponse } from "./types"
+import { TranslationEndpointList, TranslationEndpointDetail, NewTranslationEndpoint, TranslationRequest, TranslationResponse, AccountDetail } from "./types"
 
 export const getEndpoints = async (): Promise<[TranslationEndpointList]> => {
     const endpoints = (await httpClient.get<[TranslationEndpointList]>('/endpoints')).data
@@ -20,6 +20,11 @@ export const createEndpoint = async (data: NewTranslationEndpoint): Promise<Tran
 export const updateEndpoint = async (id: string, data: NewTranslationEndpoint): Promise<TranslationEndpointDetail> => {
     const endpoint = (await httpClient.put<TranslationEndpointDetail>(`/endpoints/${id}/`, data)).data
     return endpoint
+}
+
+export const getAccountByEndpoint = async (id: string): Promise<AccountDetail> => {
+    const account = (await httpClient.get<any>(`/accounts/by_endpoint/${id}`)).data
+    return account
 }
 
 export const translate = async (translationRequest: TranslationRequest): Promise<TranslationResponse> => {

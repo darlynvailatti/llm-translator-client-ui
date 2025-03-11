@@ -107,3 +107,8 @@ export interface TranslationResponse {
     body: string
 }
 
+export interface AccountDetail {
+    name: string
+    api_keys: string[]
+    is_active: boolean
+}

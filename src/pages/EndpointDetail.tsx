@@ -15,11 +15,12 @@ import { getEndpoint, updateEndpoint } from "../api/endpoints"
 import { TranslationEndpointDetail, TranslationSpecList, UpdateTranslationEndpoint } from "../api/types"
 import { getSpecs } from "../api/specs"
 import { format } from "date-fns"
-import { Button, Stack, Switch, TextField } from "@mui/material"
+import { Avatar, Button, Stack, Switch, TextField, Tooltip } from "@mui/material"
 import { CreateFAB } from "../components/CreateEndpointFAB"
-import { DocumentScanner } from "@mui/icons-material"
+import { CompareArrowsOutlined, DocumentScanner } from "@mui/icons-material"
 import { toast } from "react-toastify"
 import EndpointTranslationDrawer from "../components/EndpointTranslationDrawer"
+import EndpointAPIConnectionDetails from "../components/EndpointAPIConnectionDetails"
 
 export default function EndpointDetail() {
   const { id } = useParams<{ id: string }>()
@@ -34,6 +35,7 @@ export default function EndpointDetail() {
   })
   const [specs, setSpecs] = useState<[TranslationSpecList]>()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [dialogOpen, setDialogOpen] = useState(false)
 
   const linkToCreateNewSpec = `/endpoints/${id}/new-spec`
 
@@ -76,6 +78,13 @@ export default function EndpointDetail() {
     }
   }
 
+  function handleAPIConnection() {
+    // Open modal to connect to API
+    if (!id) return
+
+    setDialogOpen(true)
+  }
+
   function handleTranslate() {
     // Call the translate API
     if (!id) return
@@ -87,6 +96,12 @@ export default function EndpointDetail() {
 
   return (
     <Container maxWidth={false} sx={{ p: 3 }}>
+
+      {readOnlyEndpoint ?
+        <EndpointAPIConnectionDetails
+          open={dialogOpen} onClose={() => { setDialogOpen(!dialogOpen)}} endpoint={readOnlyEndpoint} />
+        : null}
+
       <Box sx={{ mb: 3 }}>
         <Breadcrumb
           items={[{ label: "My Account", href: "/" }, { label: "Endpoints", href: "/" }, { label: id || "" }]}
@@ -128,6 +143,17 @@ export default function EndpointDetail() {
                   Updated At
                 </Typography>
                 <Typography variant="body1">{readOnlyEndpoint.updated_at}</Typography>
+              </Grid>
+              <Grid item>
+                {/* Endpoint API link */}
+                <Tooltip title="API Connection">
+                  <Avatar
+                    sx={{ bgcolor: "primary.main", cursor: "pointer", '&:hover': { bgcolor: "primary.dark" } }}
+                    onClick={handleAPIConnection}
+                  >
+                    <CompareArrowsOutlined fontSize="large" />
+                  </Avatar>
+                </Tooltip>
               </Grid>
               <Grid item xs={1} sx={{ display: "flex", justifyContent: "flex-end" }}>
                 <Stack padding={1}>
