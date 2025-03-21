@@ -13,6 +13,7 @@ import "react-toastify/dist/ReactToastify.css"
 import NewSpec from "./pages/NewSpec"
 import { PrivateRoute } from "./PrivateRoute"
 import { theme } from "./theme"
+import { SpecDetailProvider } from "./pages/SpecDetailContext"
 
 function App() {
 
@@ -21,15 +22,22 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <ToastContainer position="bottom-center"/>
+      <ToastContainer position="bottom-center" />
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<PrivateRoute component={Dashboard} />} />
           <Route path="/endpoints/new" element={<PrivateRoute component={NewEndpoint} />} />
           <Route path="/endpoints/:id" element={<PrivateRoute component={EndpointDetail} />} />
-          <Route path="/endpoints/:id/specs/:specId" element={<PrivateRoute component={SpecDetail} />} />
-          <Route path="/endpoints/:id/new-spec" element={<PrivateRoute component={NewSpec} /> }/>
+          <Route path="/endpoints/:id/specs/:specId"
+            element={
+              <PrivateRoute component={() =>
+                <SpecDetailProvider>
+                  <SpecDetail />
+                </SpecDetailProvider>}
+              />
+            } />
+          <Route path="/endpoints/:id/new-spec" element={<PrivateRoute component={NewSpec} />} />
           <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} />} />
         </Routes>
       </Router>

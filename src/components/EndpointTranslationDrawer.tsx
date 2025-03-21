@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { translate } from "../api/endpoints";
 import { toast } from "react-toastify";
 import { TranslationResponse } from "../api/types";
+import { set } from "date-fns";
 
 export interface EndpointTranslationDrawerProps {
     isOpen: boolean;
@@ -15,8 +16,11 @@ export interface EndpointTranslationDrawerProps {
 
 const MAPPED_LANGS_TO_MONACO_LANGS: { [key: string]: string } = {
     "application/json": "json",
-    "application/xml": "xml",
+    "application/xml": "html",
     "text/html": "html",
+    "text/css": "css",
+    "text/csv": "csv",
+    "text/javascript": "javascript",
 }
 
 export default function EndpointTranslationDrawer(props: EndpointTranslationDrawerProps) {
@@ -25,10 +29,17 @@ export default function EndpointTranslationDrawer(props: EndpointTranslationDraw
     const [copyAndPastePayload, setCopyAndPastePayload] = useState<string>("")
     const [translationResponse, setTranslationResponse] = useState<TranslationResponse>()
     const [contentToBeTranslated, setContentToBeTranslated] = useState<string>("")
+    const [translatedContentType, setTranslatedContentType] = useState<string>("")
 
     useEffect(() => {
         setContentToBeTranslated(copyAndPastePayload)
     }, [copyAndPastePayload])
+
+    useEffect(() => {
+        if (translationResponse) {
+            setTranslatedContentType(getLanguage(translationResponse.content_type || ""))
+        }
+    }, [translationResponse])
 
     async function handleTranslate() {
         try {
@@ -43,6 +54,20 @@ export default function EndpointTranslationDrawer(props: EndpointTranslationDraw
         } finally {
             setIsLoading(false)
         }
+    }
+
+    function getLanguage(lang: string): string {
+    
+        let mappedLang = "auto"
+        Object.keys(MAPPED_LANGS_TO_MONACO_LANGS).forEach(contentType => {
+            console.log(lang + " " + contentType, new RegExp(lang).test(contentType))
+            // If contentType is found in lang, return the mapped language (regex)
+            if (new RegExp(lang).test(contentType)) {
+                console.log("Matched: ", MAPPED_LANGS_TO_MONACO_LANGS[contentType])  
+                mappedLang =  MAPPED_LANGS_TO_MONACO_LANGS[contentType]
+            }
+        })
+        return mappedLang
     }
 
 
@@ -133,7 +158,7 @@ export default function EndpointTranslationDrawer(props: EndpointTranslationDraw
                     <Typography variant="h6" fontWeight={"bold"}>Translated Payload</Typography>
                     <Editor
                         height="180px"
-                        language={MAPPED_LANGS_TO_MONACO_LANGS[translationResponse?.content_type] || "auto"}
+                        language={translatedContentType}
                         value={translationResponse?.body}
                     />
                 </Stack>

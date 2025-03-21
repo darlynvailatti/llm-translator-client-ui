@@ -56,7 +56,13 @@ export interface TranslationSpecList {
     updated_at: string
 }
 
+export enum TranslationSpecEngine {
+    DYNAMIC = "dynamic",
+    COMPILED_ARTIFACT = "compiled_artifact"
+}
+
 export interface TranslationSpecDefinition {
+    engine?: TranslationSpecEngine
     input_rule?: {
         content_type: string
         schema_: string
@@ -94,6 +100,12 @@ export interface TranslationSpecDetail {
     updated_at: string
 }
 
+export interface SpecTranslationTestCaseList {
+    uuid: string
+    name: string
+    status: SpecTestCaseStatus
+}
+
 export interface TranslationRequest {
     endpoint_uuid: string
     payload: string
@@ -111,4 +123,46 @@ export interface AccountDetail {
     name: string
     api_keys: string[]
     is_active: boolean
+}
+
+export interface GenerateArtifactResponse {
+    success: boolean
+    error?: string
+    artifact: {
+        uuid: string
+    }
+}
+
+export interface SpecArtifactResponse {
+    uuid: string
+    implementation_str: string
+}
+
+export interface SpecTestCaseDefinition {
+    input: {
+        body: string
+        content_type: string
+    }
+    expectation: {
+        body: string
+        content_type: string
+        result?: "success" | "failure"
+    }
+}
+
+export enum SpecTestCaseStatus {
+    SUCCESS = "success",
+    FAILURE = "failure",
+    NOT_EXECUTED = "not_executed"
+}
+export interface SpecTestCaseDetail {
+    uuid?: string
+    name: string
+    status: SpecTestCaseStatus
+    definition: SpecTestCaseDefinition
+}
+
+export interface NewSpecTestCase {
+    name: string
+    definition: SpecTestCaseDefinition
 }

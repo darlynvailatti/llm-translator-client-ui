@@ -1,5 +1,5 @@
 import { httpClient } from "./client"
-import { TranslationSpecDetail, TranslationSpecList } from "./types"
+import { GenerateArtifactResponse, NewSpecTestCase, SpecArtifactResponse, SpecTestCaseDetail, SpecTranslationTestCaseList, TranslationSpecDetail, TranslationSpecList } from "./types"
 
 
 export const getSpecs = async (id: string): Promise<[TranslationSpecList]> => {
@@ -20,4 +20,42 @@ export const createSpec = async (id: string, data: any): Promise<TranslationSpec
 export const updateSpec = async (id: string, specId: string, data: any): Promise<TranslationSpecDetail> => {
     const spec = (await httpClient.put<TranslationSpecDetail>(`/endpoints/${id}/specs/${specId}/`, data)).data
     return spec
+}
+
+export const getTestCases = async (specId: string): Promise<[SpecTranslationTestCaseList]> => {
+    const testCases = (await httpClient.get<[SpecTranslationTestCaseList]>(`/specs/${specId}/testcases/`)).data
+    return testCases
+}
+
+export const getTestCase = async (specId: string, testCaseId: string): Promise<SpecTestCaseDetail> => {
+    const testCase = (await httpClient.get<SpecTestCaseDetail>(`/specs/${specId}/testcases/${testCaseId}`)).data
+    return testCase
+}
+
+export const createTestCase = async (specId: string, data: NewSpecTestCase): Promise<SpecTestCaseDetail> => {
+    const testCase = (await httpClient.post<SpecTestCaseDetail>(`/specs/${specId}/testcases/`, data)).data
+    return testCase
+}
+
+export const updateTestCase = async (specId: string, testCaseId: string, data: SpecTestCaseDetail): Promise<SpecTestCaseDetail> => {
+    const testCase = (await httpClient.put<SpecTestCaseDetail>(`/specs/${specId}/testcases/${testCaseId}/`, data)).data
+    return testCase
+}
+
+export const deleteTestCase = async (specId: string, testCaseId: string): Promise<void> => {
+    await httpClient.delete<void>(`/specs/${specId}/testcases/${testCaseId}/`)
+}
+
+export const generateArtifact = async (specId: string): Promise<GenerateArtifactResponse> => {
+    const response = (await httpClient.post<GenerateArtifactResponse>(`/specs/${specId}/generate_artifact`, null)).data
+    return response
+}
+
+export const getArtifact = async (specId: string): Promise<SpecArtifactResponse | null> => {
+    const response = (await httpClient.get<[SpecArtifactResponse]>(`/specs/${specId}/artifacts/`)).data
+
+    if (response.length > 0) {
+        return response[0]
+    }
+    return null
 }
