@@ -127,10 +127,14 @@ export interface AccountDetail {
 
 export interface GenerateArtifactResponse {
     success: boolean
-    error?: string
-    artifact: {
+    message?: string
+    artifact?: {
         uuid: string
     }
+    stacktrace?: string
+    it_generated_artifact: boolean
+    it_passed_all_tests: boolean
+    failed_test_cases?: [object]
 }
 
 export interface SpecArtifactResponse {
@@ -151,18 +155,30 @@ export interface SpecTestCaseDefinition {
 }
 
 export enum SpecTestCaseStatus {
-    SUCCESS = "success",
-    FAILURE = "failure",
-    NOT_EXECUTED = "not_executed"
+    SUCCESS = "SUCCESS",
+    FAILURE = "FAILURE",
+    NOT_EXECUTED = "NOT_EXECUTED"
 }
 export interface SpecTestCaseDetail {
     uuid?: string
     name: string
     status: SpecTestCaseStatus
     definition: SpecTestCaseDefinition
+    last_execution?: {
+        executed_at: string,
+        status: SpecTestCaseStatus,
+        result: {
+            message: string
+        }
+    }
 }
 
 export interface NewSpecTestCase {
     name: string
     definition: SpecTestCaseDefinition
+}
+
+export interface SpecRunTestCasesResponse {
+    success: boolean
+    error?: string
 }

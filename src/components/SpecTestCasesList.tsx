@@ -1,8 +1,5 @@
-import { useEffect, useState } from "react"
-import { SpecTestCaseStatus, SpecTranslationTestCaseList } from "../api/types"
-import { getTestCases } from "../api/specs"
-import { Badge, Box, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material"
-import SpecTestCaseDrawer from "./SpecTestCaseDrawer"
+import { SpecTestCaseStatus } from "../api/types"
+import {Box, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material"
 import { useSpecDetail } from "../pages/SpecDetailContext"
 
 export interface SpecTestCasesListProps {

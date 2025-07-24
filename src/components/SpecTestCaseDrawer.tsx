@@ -1,4 +1,4 @@
-import { Drawer, TextField, Button, Grid, Stack, Typography, Paper } from "@mui/material"
+import { Drawer, TextField, Button, Grid, Stack, Typography, Paper, Select, MenuItem, Box, Chip } from "@mui/material"
 import { useEffect, useState } from "react"
 import { NewSpecTestCase, SpecTestCaseDetail, SpecTestCaseStatus } from "../api/types"
 import { createTestCase, deleteTestCase, getTestCase, updateTestCase } from "../api/specs"
@@ -23,7 +23,7 @@ export default function SpecTestCaseDrawer(props: SpecTestCaseDrawerProps) {
             getTestCase(props.specId, props.testCaseId).then((data) => {
                 setEditableTestCase(data)
             })
-        } else if(!props.testCaseId) {
+        } else if (!props.testCaseId) {
             setEditableTestCase({
                 name: "",
                 status: SpecTestCaseStatus.NOT_EXECUTED,
@@ -107,7 +107,7 @@ export default function SpecTestCaseDrawer(props: SpecTestCaseDrawerProps) {
         anchor="right"
         sx={{
             "& .MuiDrawer-paper": {
-                width: "50%",
+                width: "90%",
                 boxSizing: 'border-box'
             }
         }}>
@@ -115,22 +115,48 @@ export default function SpecTestCaseDrawer(props: SpecTestCaseDrawerProps) {
 
         <Grid container spacing={2} padding={2}>
             <Grid item xs={12}>
-                <Typography variant="h5" fontWeight={"bold"}>Test Case</Typography>
+                <Box justifyContent={"space-between"} flexDirection={"row"} display={"flex"}>
+                    <Typography variant="h5" fontWeight={"bold"}>Test Case</Typography>
+                </Box>
             </Grid>
             <Grid item xs={12}>
-                <TextField
-                    label="Name"
-                    fullWidth
-                    variant="standard"
-                    value={editableTestCase?.name || ""}
-                    onChange={(e) => updateField("name", e.target.value)}
-                />
+                <Grid container spacing={2} alignItems={"end"}>
+                    <Grid item md={10}>
+                        <TextField
+                            label="Name"
+                            fullWidth
+                            variant="standard"
+                            value={editableTestCase?.name || ""}
+                            onChange={(e) => updateField("name", e.target.value)}
+                        />
+
+                    </Grid>
+                    <Grid item md={2}>
+                        <Select
+                            label="Result"
+                            fullWidth
+                            variant="standard"
+                            value={editableTestCase?.definition.expectation.result || ""}
+                            onChange={(e) => updateField("definition", {
+                                ...editableTestCase?.definition,
+                                expectation: {
+                                    ...editableTestCase?.definition.expectation,
+                                    result: e.target.value as SpecTestCaseStatus
+                                }
+                            })}
+                        >
+                            <MenuItem value={SpecTestCaseStatus.SUCCESS}>Success</MenuItem>
+                            <MenuItem value={SpecTestCaseStatus.FAILURE}>Failure</MenuItem>
+                        </Select>
+                    </Grid>
+
+                </Grid>
+
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} md={6}>
                 <Paper elevation={3} sx={{ padding: 2 }}>
-                    <Typography variant="h6">Input</Typography>
                     <Stack spacing={2}>
-                        <Typography variant="subtitle1">Body</Typography>
+                        <Typography variant="h6">Input</Typography>
                         <Editor
                             height="200px"
                             language={context.spec?.definition?.input_rule?.content_type}
@@ -148,11 +174,10 @@ export default function SpecTestCaseDrawer(props: SpecTestCaseDrawerProps) {
                     </Stack>
                 </Paper>
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} md={6}>
                 <Paper elevation={3} sx={{ padding: 2 }}>
-                    <Stack spacing={1}>
+                    <Stack spacing={2}>
                         <Typography variant="h6">Expectation</Typography>
-                        <Typography variant="subtitle1">Body</Typography>
                         <Editor
                             height="200px"
                             language={context.spec?.definition?.output_rule?.content_type}
@@ -167,22 +192,34 @@ export default function SpecTestCaseDrawer(props: SpecTestCaseDrawerProps) {
                                 })
                             }}
                         />
-                        <TextField
-                            label="Result"
-                            fullWidth
-                            variant="standard"
-                            value={editableTestCase?.definition.expectation.result || ""}
-                            onChange={(e) => updateField("definition", {
-                                ...editableTestCase?.definition,
-                                expectation: {
-                                    ...editableTestCase?.definition.expectation,
-                                    result: e.target.value as "success" | "failure"
-                                }
-                            })}
-                        />
                     </Stack>
                 </Paper>
             </Grid>
+
+            {editableTestCase?.last_execution ?
+                <Grid item xs={12}>
+                    <Paper sx={{ padding: 2 }}>
+                        <Stack spacing={2}>
+                            <Box justifyContent={"space-between"} flexDirection={"row"} display={"flex"}>
+                                <Typography variant="h6">Last Execution</Typography>
+                                <Chip label={editableTestCase?.status} />
+                            </Box>
+                            <Editor
+                                height="200px"
+                                language="json"
+                                value={JSON.stringify(editableTestCase?.last_execution, null, 2) || ""}
+                                options={{
+                                    readOnly: true,
+                                    wordWrap: "on",
+                                }} />
+                        </Stack>
+                    </Paper>
+                </Grid>
+
+                : null}
+
+
+            {/* Actions */}
             <Grid item xs={12}>
                 {props.testCaseId === undefined ?
                     <Button variant="contained" color="primary" onClick={handleCreate}>
@@ -200,7 +237,7 @@ export default function SpecTestCaseDrawer(props: SpecTestCaseDrawerProps) {
                                 Delete
                             </Button>
                         </Grid>
-                    </Grid>                    
+                    </Grid>
                 }
             </Grid>
         </Grid>

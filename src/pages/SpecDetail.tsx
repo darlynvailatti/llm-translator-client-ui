@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useParams } from "react-router-dom"
 import Container from "@mui/material/Container"
 import Box from "@mui/material/Box"
@@ -9,17 +9,18 @@ import Grid from "@mui/material/Grid"
 import Typography from "@mui/material/Typography"
 import Button from "@mui/material/Button"
 import { Breadcrumb } from "../components/Breadcrumb"
-import { generateArtifact, getArtifact, getSpec, getTestCases, updateSpec } from "../api/specs"
+import { getArtifact, getSpec, updateSpec } from "../api/specs"
 import { SpecArtifactResponse, TranslationSpecDetail, TranslationSpecEngine, UpdateTranslationSpec } from "../api/types"
-import { Avatar, CircularProgress, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from "@mui/material"
+import { Avatar, CircularProgress, Drawer, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from "@mui/material"
 import { Editor } from "@monaco-editor/react"
 import { format } from "date-fns"
 import { toast } from "react-toastify"
 import SpecTestCasesList from "../components/SpecTestCasesList"
-import { Add, AutoMode } from "@mui/icons-material"
+import { Add, AutoMode, Bolt, OpenInBrowser } from "@mui/icons-material"
 import { DEFAULT_DATE_FORMAT } from "../constants"
 import SpecTestCaseDrawer from "../components/SpecTestCaseDrawer"
 import { useSpecDetail } from "./SpecDetailContext"
+import ArtifactGenerationResponse from "../components/ArtifactGenerationResponse"
 
 const TRANSLATION_SPEC_ENGINE_OPTIONS: any = {
   [TranslationSpecEngine.DYNAMIC]: {
@@ -39,29 +40,12 @@ export default function SpecDetail() {
 
   const [readOnlySpec, setReadOnlySpec] = useState<TranslationSpecDetail>()
   const [spec, setSpec] = useState<UpdateTranslationSpec>()
-  const [isGeneratingArtifact, setIsGeneratingArtifact] = useState(false)
-  const [artifact, setArtifact] = useState<SpecArtifactResponse | null>()
   const [open, setOpen] = useState(false)
   const [selectedTestCaseId, setSelectedTestCaseId] = useState<string | undefined>()
+  const [artifactDrawerIsOpen, setArtifactDrawerIsOpen] = useState(false)
+
   const isCompiledArtifactEngine = spec?.definition?.engine === TranslationSpecEngine.COMPILED_ARTIFACT
-
-
-  useEffect(() => {
-    if (id && specId) {
-
-      context.setEndpointId(id)
-      context.setSpecId(specId)
-
-      getSpec(id, specId).then((data) => {
-        data.created_at = format(new Date(data.created_at), DEFAULT_DATE_FORMAT)
-        data.updated_at = format(new Date(data.updated_at), DEFAULT_DATE_FORMAT)
-        setReadOnlySpec(data)
-        setSpec({
-          ...data
-        })
-      })
-    }
-  }, [id, specId])
+  const isAllowedToGenerateArtifact = Boolean(context.testCases && context.testCases.length > 0)
 
   function updateField(field: string, value: any) {
     if (!spec) return
@@ -80,40 +64,89 @@ export default function SpecDetail() {
     }
   }
 
-  async function handleGenerateArtifact() {
-    // Call the generateArtifact API
-    if (!spec || !specId) return
+  function handleOpenArtifactDrawer() {
 
-    try {
-      setIsGeneratingArtifact(true)
-      const response = await generateArtifact(specId)
-      if (response.success) {
-        toast.success("Artifact generated successfully")
-        getArtifact(specId).then((data) => {
-          setArtifact(data)
-        })
-      } else {
-        toast.error(response.error)
-      }
-    } catch (error) {
-      toast.error("Failed to generate artifact: " + error)
-    } finally {
-      setIsGeneratingArtifact(false)
+    if (!context.artifact) {
+      toast.error("No artifact has been generated")
+      return
     }
+
+    setArtifactDrawerIsOpen(true)
   }
+
+  const handleGenerateArtifact = useCallback(() => {
+    if (!spec || !specId) return
+    try {
+      context.generateArtifact()
+    } catch {
+      toast.error("Failed to generate artifact")
+    }
+  }, [spec, specId])
 
   function handleOnSelectTestCase(testCaseId: string) {
     setSelectedTestCaseId(testCaseId)
     setOpen(true)
   }
 
+  async function handleRunTestCases() {
+    if (!specId) return
+    try {
+      await context.runTestCases()
+      toast.success("Tests ran successfully")
+    } catch (error: any) {
+      toast.error("Failed to run test cases: " + error?.message)
+    }
+  }
+
   useEffect(() => {
     if (specId)
       getArtifact(specId).then((data) => {
-        setArtifact(data)
+        context.setArtifact(data)
       })
   }, [specId])
 
+
+  // Sub Components
+  const GenerateArtifactButton = useMemo(() => (props: { customMessage: string, force: boolean }) => {
+    return <>
+      {(!context.artifact || props.force) && !context.isGeneratingArtifact ?
+        <Tooltip title={isAllowedToGenerateArtifact ? props.customMessage : "Add test cases to generate artifact"}>
+          <Avatar
+            sx={{
+              bgcolor: !isAllowedToGenerateArtifact ? "grey.400" : "primary.main",
+              cursor: !isAllowedToGenerateArtifact ? "not-allowed" : "pointer",
+              '&:hover': !isAllowedToGenerateArtifact ? {} : { bgcolor: "primary.dark" },
+              p: 3,
+              opacity: !isAllowedToGenerateArtifact ? 0.6 : 1
+            }}
+            onClick={!context.isGeneratingArtifact && isAllowedToGenerateArtifact ? handleGenerateArtifact : undefined}
+          >
+            <AutoMode />
+          </Avatar>
+        </Tooltip> : null}
+    </>
+  }, [handleGenerateArtifact,
+    context.isGeneratingArtifact,
+    isAllowedToGenerateArtifact,
+    context.artifact])
+
+
+  useEffect(() => {
+    if (id && specId) {
+
+      context.setEndpointId(id)
+      context.setSpecId(specId)
+
+      getSpec(id, specId).then((data) => {
+        data.created_at = format(new Date(data.created_at), DEFAULT_DATE_FORMAT)
+        data.updated_at = format(new Date(data.updated_at), DEFAULT_DATE_FORMAT)
+        setReadOnlySpec(data)
+        setSpec({
+          ...data
+        })
+      })
+    }
+  }, [id, specId])
 
   return (
     <Container maxWidth={false} sx={{ p: 3 }}>
@@ -354,32 +387,79 @@ export default function SpecDetail() {
 
             <Grid container spacing={2}>
 
-              <Grid item xs={6}>
+              <Grid item xs={12}>
                 {isCompiledArtifactEngine ?
                   <Paper sx={{ p: 2 }}>
                     <Stack>
                       <Grid container spacing={2} justifyContent={"space-between"} alignContent={"center"}>
                         <Grid item>
-
                           <Typography variant="subtitle1" fontWeight="medium" sx={{ mb: 2 }}>
                             Test Cases
                           </Typography>
                         </Grid>
                         <Grid item>
-                          <Tooltip title="Add Test Case">
-                            <Avatar
-                              sx={{
-                                bgcolor: "primary.main",
-                                cursor: "pointer",
-                                '&:hover': { bgcolor: "primary.dark" }, p: 3
-                              }}
-                              onClick={() => {
-                                setOpen(true)
-                              }}
-                            >
-                              <Add />
-                            </Avatar>
-                          </Tooltip>
+                          <Grid container spacing={1}>
+
+                            <Grid item>
+                              <Stack spacing={1}>
+                                {context.isRunningTestCases ? <CircularProgress /> : null}
+
+                                {!context.isRunningTestCases ?
+                                  <Tooltip title="Run Test Cases">
+                                    <Avatar
+                                      sx={{
+                                        bgcolor: "primary.main",
+                                        cursor: "pointer",
+                                        '&:hover': { bgcolor: "primary.dark" }, p: 3
+                                      }}
+                                      onClick={handleRunTestCases}
+                                    >
+                                      <Bolt />
+                                    </Avatar>
+                                  </Tooltip>
+                                  : null}
+
+                              </Stack>
+                            </Grid>
+
+                            <Grid item>
+                              <Stack spacing={1}>
+                                {context.isGeneratingArtifact ? <CircularProgress /> : null}
+
+                                {GenerateArtifactButton({ customMessage: "Generate Artifact", force: false })}
+
+                                {context.artifact ? <Tooltip title="Open Artifact">
+                                  <Avatar
+                                    sx={{
+                                      bgcolor: "primary.main",
+                                      cursor: "pointer",
+                                      '&:hover': { bgcolor: "primary.dark" },
+                                      p: 3
+                                    }}
+                                    onClick={handleOpenArtifactDrawer}
+                                  >
+                                    <OpenInBrowser />
+                                  </Avatar>
+                                </Tooltip> : null}
+                              </Stack>
+                            </Grid>
+                            <Grid item>
+                              <Tooltip title="Add Test Case">
+                                <Avatar
+                                  sx={{
+                                    bgcolor: "primary.main",
+                                    cursor: "pointer",
+                                    '&:hover': { bgcolor: "primary.dark" }, p: 3
+                                  }}
+                                  onClick={() => {
+                                    setOpen(true)
+                                  }}
+                                >
+                                  <Add />
+                                </Avatar>
+                              </Tooltip>
+                            </Grid>
+                          </Grid>
                         </Grid>
                       </Grid>
 
@@ -390,58 +470,7 @@ export default function SpecDetail() {
                   </Paper>
                   : null}
               </Grid>
-
-              <Grid item xs={6}>
-                {isCompiledArtifactEngine ?
-                  <Paper sx={{ p: 2 }}>
-                    <Stack>
-
-                      <Grid container justifyContent={"space-between"} alignContent={"center"} spacing={2}>
-                        <Grid item>
-                          <Typography variant="subtitle1" fontWeight="medium" sx={{ mb: 2 }}>
-                            Artifact
-                          </Typography>
-
-                        </Grid>
-
-                        <Grid item>
-                          <Box sx={{ height: 50 }} alignContent={"center"} justifyItems={"center"}>
-                            <Stack spacing={1}>
-                              {isGeneratingArtifact ? <CircularProgress /> :
-                                <Tooltip title="Generate Artifact">
-                                  <Avatar
-                                    sx={{ 
-                                      bgcolor: "primary.main", 
-                                      cursor: "pointer", 
-                                      '&:hover': { bgcolor: "primary.dark" } }}
-                                    onClick={handleGenerateArtifact}
-                                  >
-                                    <AutoMode  />
-                                  </Avatar>
-                                </Tooltip>}
-                            </Stack>
-                          </Box>
-                        </Grid>
-
-                      </Grid>
-
-                      {artifact && !isGeneratingArtifact ?
-
-                        <Editor
-                          value={artifact?.implementation_str}
-                          language="python"
-                          height={200}
-                        />
-                        : null}
-                    </Stack>
-
-                  </Paper>
-                  : null}
-              </Grid>
-
             </Grid>
-
-
 
             {/* Save Button */}
             <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
@@ -451,9 +480,63 @@ export default function SpecDetail() {
             </Box>
           </Box>
         </div>
-        : null}
+        : null
+      }
 
-    </Container>
+      {/* Artifact Drawer */}
+      <Drawer
+        open={artifactDrawerIsOpen}
+        onClose={() => setArtifactDrawerIsOpen(false)}
+        anchor="right"
+        sx={{
+          "& .MuiDrawer-paper": {
+            width: "50%",
+            boxSizing: 'border-box'
+          }
+        }}>
+        <Stack spacing={2} padding={2}>
+          <Grid container
+            justifyContent={"space-between"}
+            alignItems={"center"}
+            padding={2}>
+            <Grid item>
+              <Typography variant="h5" fontWeight="bold">
+                Artifact
+              </Typography>
+            </Grid>
+
+            <Grid item>
+              {GenerateArtifactButton({ customMessage: "Re-generate Artifact", force: true })}
+            </Grid>
+          </Grid>
+
+          {!context.isGeneratingArtifact && context.artifactGenerationResponse ?
+            <Paper>
+              <ArtifactGenerationResponse response={context.artifactGenerationResponse} />
+            </Paper>
+            : null}
+
+          <Paper sx={{ p: 2 }}>
+            {isCompiledArtifactEngine ?
+              <Stack>
+                {context.artifact && !context.isGeneratingArtifact ?
+                  <Editor
+                    value={context.artifact?.implementation_str}
+                    language="python"
+                    height={"70vh"}
+                  />
+                  : null}
+              </Stack>
+
+              : null}
+          </Paper>
+
+        </Stack>
+
+
+      </Drawer>
+
+    </Container >
   )
 }
 

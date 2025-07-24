@@ -1,5 +1,5 @@
 import { httpClient } from "./client"
-import { GenerateArtifactResponse, NewSpecTestCase, SpecArtifactResponse, SpecTestCaseDetail, SpecTranslationTestCaseList, TranslationSpecDetail, TranslationSpecList } from "./types"
+import { GenerateArtifactResponse, NewSpecTestCase, SpecArtifactResponse, SpecRunTestCasesResponse, SpecTestCaseDetail, SpecTranslationTestCaseList, TranslationSpecDetail, TranslationSpecList } from "./types"
 
 
 export const getSpecs = async (id: string): Promise<[TranslationSpecList]> => {
@@ -58,4 +58,9 @@ export const getArtifact = async (specId: string): Promise<SpecArtifactResponse 
         return response[0]
     }
     return null
+}
+
+export const runTestCases = async (specId: string): Promise<SpecRunTestCasesResponse> => {
+    const testCases = (await httpClient.post<SpecRunTestCasesResponse>(`/specs/${specId}/testcases/run`, {})).data
+    return testCases
 }
