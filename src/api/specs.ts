@@ -64,3 +64,8 @@ export const runTestCases = async (specId: string): Promise<SpecRunTestCasesResp
     const testCases = (await httpClient.post<SpecRunTestCasesResponse>(`/specs/${specId}/testcases/run`, {})).data
     return testCases
 }
+
+export const activateSpec = async (specId: string): Promise<TranslationSpecDetail> => {
+    const spec = (await httpClient.post<TranslationSpecDetail>(`/specs/${specId}/activate`, null)).data
+    return spec
+}

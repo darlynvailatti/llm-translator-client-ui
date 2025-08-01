@@ -5,6 +5,7 @@ export const SECONDARY_COLOR = "rgb(238 101 126)"
 
 export const theme = createTheme({
   palette: {
+    mode: "dark",
     primary: {
       main: MAIN_COLOR, 
       contrastText: "#ffffff",
@@ -23,7 +24,16 @@ export const theme = createTheme({
       contrastText: "#ffffff",
     },
     background: {
-      default: "#ffffff",
+      paper: "#181818",
+      default: "#23232b", // lighter than paper for contrast
+    },
+    action: {
+      active: "#e1bee7", // light purple for active icons
+      hover: "rgba(129, 16, 156, 0.15)", // light purple hover
+      selected: "rgba(129, 16, 156, 0.25)", // slightly more visible selected
+      disabled: "#888",
+      disabledBackground: "rgba(255,255,255,0.08)",
+      focus: "rgba(129, 16, 156, 0.20)",
     },
     success: {
       main: MAIN_COLOR,
@@ -60,6 +70,13 @@ export const theme = createTheme({
     MuiPaper: {
       defaultProps: {
         variant: "outlined",
+      },
+    },
+    MuiSvgIcon: {
+      styleOverrides: {
+        root: {
+          color: "#e1bee7", // light purple for icons by default
+        },
       },
     },
   },

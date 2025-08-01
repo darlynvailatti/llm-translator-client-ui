@@ -96,7 +96,8 @@ response = requests.post(api_url, headers=headers, data=json.dumps(payload))`
                         minimap: { enabled: false },
                     }}
                     value={examplePayload}
-                    />
+                    theme="vs-dark"
+                />
             </Stack>
         </DialogContent>
         <DialogActions>

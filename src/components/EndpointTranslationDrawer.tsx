@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { translate } from "../api/endpoints";
 import { toast } from "react-toastify";
 import { TranslationResponse } from "../api/types";
-import { set } from "date-fns";
 
 export interface EndpointTranslationDrawerProps {
     isOpen: boolean;
@@ -107,6 +106,7 @@ export default function EndpointTranslationDrawer(props: EndpointTranslationDraw
                                 defaultValue={`// Paste your content/payload here...`}
                                 value={copyAndPastePayload}
                                 onChange={(value) => value ? setCopyAndPastePayload(value) : setCopyAndPastePayload("")}
+                                theme="vs-dark"
                             />
                         </Stack>
                     </Paper>
@@ -160,6 +160,7 @@ export default function EndpointTranslationDrawer(props: EndpointTranslationDraw
                         height="180px"
                         language={translatedContentType}
                         value={translationResponse?.body}
+                        theme="vs-dark"
                     />
                 </Stack>
             </Paper>}

@@ -11,3 +11,27 @@ body {
   z-index: 1000 !important;
 }
 
+@keyframes pulseHighlight {
+  0% {
+    background-color: #fff9c4;
+  }
+  60% {
+    background-color: #fff176;
+  }
+  100% {
+    background-color: inherit;
+  }
+}
+.pulse-animate {
+  animation: pulseHighlight 0.7s ease;
+}
+
+.spec-card-hoverable {
+  transition: box-shadow 0.2s, background 0.2s;
+  cursor: pointer;
+}
+.spec-card-hoverable:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.10), 0 1.5px 6px rgba(0,0,0,0.08);
+  background: #f5f7fa;
+}
+

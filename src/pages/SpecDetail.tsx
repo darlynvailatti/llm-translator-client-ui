@@ -10,13 +10,13 @@ import Typography from "@mui/material/Typography"
 import Button from "@mui/material/Button"
 import { Breadcrumb } from "../components/Breadcrumb"
 import { getArtifact, getSpec, updateSpec } from "../api/specs"
-import { SpecArtifactResponse, TranslationSpecDetail, TranslationSpecEngine, UpdateTranslationSpec } from "../api/types"
-import { Avatar, CircularProgress, Drawer, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from "@mui/material"
+import { TranslationSpecDetail, TranslationSpecEngine, UpdateTranslationSpec } from "../api/types"
+import { Avatar, CircularProgress, Drawer, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Tooltip, Fade, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Tabs, Tab } from "@mui/material"
 import { Editor } from "@monaco-editor/react"
 import { format } from "date-fns"
 import { toast } from "react-toastify"
 import SpecTestCasesList from "../components/SpecTestCasesList"
-import { Add, AutoMode, Bolt, OpenInBrowser } from "@mui/icons-material"
+import { Add, AutoMode, Bolt, OpenInBrowser, Edit, Input, Output, InfoOutlined, Science, Autorenew, BuildCircle } from "@mui/icons-material"
 import { DEFAULT_DATE_FORMAT } from "../constants"
 import SpecTestCaseDrawer from "../components/SpecTestCaseDrawer"
 import { useSpecDetail } from "./SpecDetailContext"
@@ -33,6 +33,39 @@ const TRANSLATION_SPEC_ENGINE_OPTIONS: any = {
   }
 }
 
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`spec-tabpanel-${index}`}
+      aria-labelledby={`spec-tab-${index}`}
+      {...other}
+    >
+      {value === index && (
+        <Box sx={{ pt: 3, p: 3 }}>
+          {children}
+        </Box>
+      )}
+    </div>
+  );
+}
+
+function a11yProps(index: number) {
+  return {
+    id: `spec-tab-${index}`,
+    'aria-controls': `spec-tabpanel-${index}`,
+  };
+}
+
 export default function SpecDetail() {
 
   const context = useSpecDetail()
@@ -40,24 +73,87 @@ export default function SpecDetail() {
 
   const [readOnlySpec, setReadOnlySpec] = useState<TranslationSpecDetail>()
   const [spec, setSpec] = useState<UpdateTranslationSpec>()
+  const [initialSpec, setInitialSpec] = useState<UpdateTranslationSpec>()
   const [open, setOpen] = useState(false)
   const [selectedTestCaseId, setSelectedTestCaseId] = useState<string | undefined>()
   const [artifactDrawerIsOpen, setArtifactDrawerIsOpen] = useState(false)
+  const [editMode, setEditMode] = useState(false)
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
+  const [errors, setErrors] = useState<{ name?: string; version?: string }>({})
+  const [tabValue, setTabValue] = useState(0)
 
   const isCompiledArtifactEngine = spec?.definition?.engine === TranslationSpecEngine.COMPILED_ARTIFACT
   const isAllowedToGenerateArtifact = Boolean(context.testCases && context.testCases.length > 0)
 
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
+  };
+
+  function validateField(field: string, value: string) {
+    let error = ''
+    if (field === 'name') {
+      if (!value) error = 'Name is required.'
+    }
+    if (field === 'version') {
+      if (!value) error = 'Version is required.'
+    }
+    setErrors((prev) => ({ ...prev, [field]: error }))
+    return error === ''
+  }
+
   function updateField(field: string, value: any) {
     if (!spec) return
     setSpec({ ...spec, [field]: value })
+    if (typeof value === 'string') validateField(field, value)
   }
 
-  async function update() {
-    // Call the updateSpec API
+  function isFormValid() {
+    if (!spec) return false
+    return (
+      spec.name &&
+      spec.version &&
+      !errors.name &&
+      !errors.version
+    )
+  }
+
+  function hasUnsavedChanges() {
+    if (!spec || !initialSpec) return false
+    return (
+      spec.name !== initialSpec.name ||
+      spec.version !== initialSpec.version ||
+      spec.is_active !== initialSpec.is_active ||
+      JSON.stringify(spec.definition) !== JSON.stringify(initialSpec.definition)
+    )
+  }
+
+  function handleEdit() {
+    setEditMode(true)
+  }
+
+  function handleCancel() {
+    if (hasUnsavedChanges()) {
+      setShowCancelDialog(true)
+    } else {
+      doCancel()
+    }
+  }
+
+  function doCancel() {
+    setEditMode(false)
+    setSpec(initialSpec)
+    setErrors({})
+    setShowCancelDialog(false)
+  }
+
+  async function handleUpdate() {
     if (!id || !spec || !specId) return
 
     try {
       await updateSpec(id, specId, spec)
+      setInitialSpec(spec)
+      setEditMode(false)
+      setErrors({})
       toast.success("Spec updated successfully")
     } catch (error) {
       toast.error("Failed to update spec: " + error)
@@ -65,12 +161,10 @@ export default function SpecDetail() {
   }
 
   function handleOpenArtifactDrawer() {
-
     if (!context.artifact) {
       toast.error("No artifact has been generated")
       return
     }
-
     setArtifactDrawerIsOpen(true)
   }
 
@@ -105,7 +199,6 @@ export default function SpecDetail() {
       })
   }, [specId])
 
-
   // Sub Components
   const GenerateArtifactButton = useMemo(() => (props: { customMessage: string, force: boolean }) => {
     return <>
@@ -130,10 +223,8 @@ export default function SpecDetail() {
     isAllowedToGenerateArtifact,
     context.artifact])
 
-
   useEffect(() => {
     if (id && specId) {
-
       context.setEndpointId(id)
       context.setSpecId(specId)
 
@@ -141,9 +232,11 @@ export default function SpecDetail() {
         data.created_at = format(new Date(data.created_at), DEFAULT_DATE_FORMAT)
         data.updated_at = format(new Date(data.updated_at), DEFAULT_DATE_FORMAT)
         setReadOnlySpec(data)
-        setSpec({
+        const editable = {
           ...data
-        })
+        }
+        setSpec(editable)
+        setInitialSpec(editable)
       })
     }
   }, [id, specId])
@@ -158,17 +251,13 @@ export default function SpecDetail() {
           onClose={() => {
             setOpen(false)
             setSelectedTestCaseId(undefined)
-
           }}
           open={open}
         />
-      ) : (
-        <></>
-      )}
+      ) : null}
 
-      {spec ?
+      {spec ? (
         <div>
-
           <Box sx={{ mb: 3 }}>
             <Breadcrumb
               items={[
@@ -181,307 +270,427 @@ export default function SpecDetail() {
             />
           </Box>
 
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {/* Spec info card */}
-            <Paper sx={{ p: 2 }}>
-              <Grid container spacing={2} alignItems="start" justifyContent={"space-between"}>
-                <Grid item xs={4}>
-                  <Stack spacing={1}>
-                    <Typography variant="body2" color="text.secondary">
-                      Name
-                    </Typography>
-                    <TextField
-                      variant="standard"
-                      value={spec.name}
-                      fullWidth
-                      onChange={(evn) => updateField("name", evn.target.value)}
-                    />
-                  </Stack>
-                </Grid>
-                <Grid item xs={2}>
-                  <Stack spacing={1}>
-                    <Typography variant="body2" color="text.secondary">
-                      Engine
-                    </Typography>
-                    {/* Select available options */}
-
-                    <ToggleButtonGroup size="small" value={spec.definition?.engine} exclusive>
-                      {Object.keys(TRANSLATION_SPEC_ENGINE_OPTIONS).map((key) => (
-                        <Tooltip title={TRANSLATION_SPEC_ENGINE_OPTIONS[key].description}>
-                          <ToggleButton value={key} onClick={() => updateField("definition", {
-                            ...spec.definition,
-                            engine: key
-                          })}>
-                            {TRANSLATION_SPEC_ENGINE_OPTIONS[key].label}
-                          </ToggleButton>
-                        </Tooltip>
-                      ))}
-                    </ToggleButtonGroup>
-                  </Stack>
-                </Grid>
-                <Grid item xs={1}>
-                  <Stack spacing={1}>
-                    <Typography variant="body2" color="text.secondary">
-                      Version
-                    </Typography>
-                    <TextField
-                      variant="standard"
-                      value={spec.version}
-                      onChange={(evn) => updateField("version", evn.target.value)}
-                    />
-                  </Stack>
-                </Grid>
-                <Grid item xs={2}>
-                  <Stack spacing={1}>
-                    <Typography variant="body2" color="text.secondary">
-                      Created At
-                    </Typography>
-                    <Typography variant="body1">{readOnlySpec?.created_at}</Typography>
-                  </Stack>
-                </Grid>
-                <Grid item xs={2}>
-                  <Stack spacing={1}>
-                    <Typography variant="body2" color="text.secondary">
-                      Updated At
-                    </Typography>
-                    <Typography variant="body1">{readOnlySpec?.updated_at}</Typography>
-                  </Stack>
-                </Grid>
-                <Grid item sx={{ display: "flex", justifyContent: "flex-end" }}>
-                  <Grid item>
-                    <Stack spacing={1}>
-                      <Typography variant="body2" color="text.secondary">
-                        Is Active?
-                      </Typography>
-                      <Switch
-                        checked={spec.is_active}
-                        onChange={(evn) => updateField("is_active", evn.target.checked)}
-                        sx={{ margin: 0 }}
+            <Fade in={true} timeout={400} key={`spec-info-${editMode ? 'edit' : 'view'}`}>
+              <Paper>
+                <Stack spacing={2} padding={2}>
+                  <Grid container alignItems="center" justifyContent={"space-between"} spacing={2}>
+                    <Grid item xs={5}>
+                      <TextField
+                        label="Name"
+                        value={spec.name}
+                        variant="standard"
+                        fullWidth
+                        required
+                        helperText={errors.name ? errors.name : 'A descriptive name for this specification.'}
+                        error={!!errors.name}
+                        onChange={(evn) => updateField("name", evn.target.value)}
+                        onBlur={(evn) => validateField("name", evn.target.value)}
+                        disabled={!editMode}
                       />
-                    </Stack>
+                    </Grid>
+                    <Grid item xs={3}>
+                      <TextField
+                        label="Version"
+                        value={spec.version}
+                        variant="standard"
+                        fullWidth
+                        required
+                        helperText={errors.version ? errors.version : 'Version number for this specification.'}
+                        error={!!errors.version}
+                        onChange={(evn) => updateField("version", evn.target.value)}
+                        onBlur={(evn) => validateField("version", evn.target.value)}
+                        disabled={!editMode}
+                      />
+                    </Grid>
+                    <Grid item xs={2}>
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <Typography variant="body2" color="text.secondary">
+                          Active
+                        </Typography>
+                        <Switch
+                          color="primary"
+                          checked={spec.is_active}
+                          onChange={() => {
+                            updateField("is_active", !spec.is_active)
+                          }}
+                          disabled={!editMode}
+                        />
+                      </Stack>
+                    </Grid>
                   </Grid>
-                </Grid>
-              </Grid>
-            </Paper>
+                  
+                  <Grid container spacing={2} alignItems="center" justifyContent={"space-between"}>
+                    <Grid item xs={4}>
+                      <Stack spacing={1}>
+                        <Typography variant="body2" color="text.secondary">
+                          Engine
+                        </Typography>
+                        <ToggleButtonGroup 
+                          size="small" 
+                          value={spec.definition?.engine} 
+                          exclusive
+                          disabled={!editMode}
+                        >
+                          {Object.keys(TRANSLATION_SPEC_ENGINE_OPTIONS).map((key) => {
+                            let icon = null;
+                            if (key === TranslationSpecEngine.DYNAMIC) icon = <Autorenew sx={{ mr: 1 }} fontSize="small" />;
+                            if (key === TranslationSpecEngine.COMPILED_ARTIFACT) icon = <BuildCircle sx={{ mr: 1 }} fontSize="small" />;
+                            return (
+                              <Tooltip key={key} title={TRANSLATION_SPEC_ENGINE_OPTIONS[key].description}>
+                                <ToggleButton 
+                                  value={key} 
+                                  onClick={() => updateField("definition", {
+                                    ...spec.definition,
+                                    engine: key
+                                  })}
+                                >
+                                  {icon}
+                                  {TRANSLATION_SPEC_ENGINE_OPTIONS[key].label}
+                                </ToggleButton>
+                              </Tooltip>
+                            )
+                          })}
+                        </ToggleButtonGroup>
+                      </Stack>
+                    </Grid>
+                    <Grid item xs={4}>
+                      <Stack direction="row" spacing={4}>
+                        <Stack>
+                          <Typography variant="caption" color="text.secondary">
+                            Created At
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {readOnlySpec?.created_at}
+                          </Typography>
+                        </Stack>
+                        <Stack>
+                          <Typography variant="caption" color="text.secondary">
+                            Updated At
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {readOnlySpec?.updated_at}
+                          </Typography>
+                        </Stack>
+                      </Stack>
+                    </Grid>
+                    <Grid item xs={4} sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', pr: 2 }}>
+                      {!editMode && (
+                        <Button startIcon={<Edit />} variant="outlined" size="small" onClick={handleEdit}>
+                          Edit
+                        </Button>
+                      )}
+                      {editMode && (
+                        <>
+                          <Button variant="outlined" color="secondary" onClick={handleCancel} sx={{ mr: 1 }}>
+                            Cancel
+                          </Button>
+                          <Button variant="contained" color="primary" onClick={handleUpdate} disabled={!isFormValid()}>
+                            Save
+                          </Button>
+                        </>
+                      )}
+                    </Grid>
+                  </Grid>
+                </Stack>
+              </Paper>
+            </Fade>
 
-            {/* Input/Output Rules */}
-            <Grid container spacing={2}>
-              {/* Input Rules */}
-              <Grid item xs={12} md={3}>
-                <Paper sx={{ p: 2, height: "100%" }}>
-                  <Typography variant="subtitle1" fontWeight="medium" sx={{ mb: 2 }}>
-                    Input Rules
-                  </Typography>
+            {/* Tabs */}
+            <Fade in={true} timeout={400} key={`tabs-${editMode ? 'edit' : 'view'}`}>
+              <Paper>
+                <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                  <Tabs value={tabValue} onChange={handleTabChange} aria-label="spec configuration tabs">
+                    <Tab label="Signature" {...a11yProps(0)} />
+                    <Tab label="Instructions" {...a11yProps(1)} />
+                    {isCompiledArtifactEngine && <Tab label="Tests" {...a11yProps(2)} />}
+                  </Tabs>
+                </Box>
 
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Format
-                    </Typography>
-                    <TextField
-                      variant="standard"
-                      value={spec.definition?.input_rule?.content_type}
-                      onChange={(evn) => updateField("definition", {
-                        ...spec.definition,
-                        input_rule: {
-                          ...spec.definition?.input_rule,
-                          content_type: evn.target.value
-                        }
-                      })}
-                    />
-                  </Box>
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">
-                      Schema
-                    </Typography>
-                    <Box
-                      sx={{
-                        border: 2,
-                        borderStyle: "dashed",
-                        borderColor: "divider",
-                        borderRadius: 1,
-                        p: 3,
-                        mt: 1,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "text.disabled",
-                      }}
-                    >
-                      Drag or drop a file here
-                    </Box>
-                  </Box>
-                </Paper>
-              </Grid>
+                {/* Tab 0: Signature */}
+                <TabPanel value={tabValue} index={0}>
+                  <Grid container spacing={2}>
+                    {/* Input Rules */}
+                    <Grid item xs={12} md={6}>
+                      <Paper sx={{ p: 2, minHeight: 280, display: 'flex', flexDirection: 'column' }}>
+                        <Typography variant="subtitle1" fontWeight="medium" sx={{ mb: 1, display: 'flex', alignItems: 'center' }}>
+                          <Input sx={{ mr: 1 }} fontSize="small" />
+                          Input Rules
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+                          Define the expected format and structure of incoming data
+                        </Typography>
 
-              {/* Output Rules */}
-              <Grid item xs={12} md={3}>
-                <Paper sx={{ p: 2, height: "100%" }}>
-                  <Typography variant="subtitle1" fontWeight="medium" sx={{ mb: 2 }}>
-                    Output Rules
-                  </Typography>
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Format
-                    </Typography>
-                    <TextField
-                      variant="standard"
-                      value={spec.definition?.output_rule?.content_type}
-                      onChange={(evn) => updateField("definition", {
-                        ...spec.definition,
-                        output_rule: {
-                          ...spec.definition?.output_rule,
-                          content_type: evn.target.value
-                        }
-                      })}
-                    />
-                  </Box>
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">
-                      Schema
-                    </Typography>
-                    <Box
-                      sx={{
-                        border: 2,
-                        borderStyle: "dashed",
-                        borderColor: "divider",
-                        borderRadius: 1,
-                        p: 3,
-                        mt: 1,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "text.disabled",
-                      }}
-                    >
-                      Drag or drop a file here
-                    </Box>
-                  </Box>
-                </Paper>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                {/* Extra Context */}
-                <Paper sx={{ p: 2 }}>
-                  <Stack>
-                    <Tooltip
-                      title="Extra context is used to provide additional information to the translation process, either to generate the compiled artifact or during dynamic translation.">
-                      <Typography variant="subtitle1" fontWeight="medium" sx={{ mb: 2 }}>
-                        Extra context
-                      </Typography>
-                    </Tooltip>
-                    <Editor
-                      value={spec.definition?.extra_context}
-                      language="ini"
-                      onChange={(evn) => {
-                        updateField("definition", {
-                          ...spec.definition,
-                          extra_context: evn
-                        })
+                        <Box sx={{ mb: 2, flex: '0 0 auto' }}>
+                          <Typography variant="body2" color="text.secondary">
+                            Format
+                          </Typography>
+                          <TextField
+                            variant="standard"
+                            value={spec.definition?.input_rule?.content_type}
+                            onChange={(evn) => updateField("definition", {
+                              ...spec.definition,
+                              input_rule: {
+                                ...spec.definition?.input_rule,
+                                content_type: evn.target.value
+                              }
+                            })}
+                            disabled={!editMode}
+                            fullWidth
+                          />
+                        </Box>
+                        <Box sx={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column' }}>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            Schema
+                          </Typography>
+                          <Box
+                            sx={{
+                              border: 2,
+                              borderStyle: "dashed",
+                              borderColor: "divider",
+                              borderRadius: 1,
+                              p: 4,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "text.disabled",
+                              opacity: editMode ? 1 : 0.6,
+                              minHeight: 120,
+                              flex: '1 1 auto',
+                              cursor: editMode ? "pointer" : "default",
+                              transition: "all 0.2s ease-in-out",
+                              "&:hover": editMode ? {
+                                borderColor: "primary.main",
+                                backgroundColor: "action.hover"
+                              } : {}
+                            }}
+                          >
+                            <Stack spacing={1} alignItems="center">
+                              <Typography variant="body2" fontWeight="medium">
+                                Drag and drop a file here
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                or click to browse
+                              </Typography>
+                            </Stack>
+                          </Box>
+                        </Box>
+                      </Paper>
+                    </Grid>
 
-                      }}
-                      height={200}
-                    />
-                  </Stack>
-                </Paper>
-              </Grid>
-            </Grid>
+                    {/* Output Rules */}
+                    <Grid item xs={12} md={6}>
+                      <Paper sx={{ p: 2, minHeight: 280, display: 'flex', flexDirection: 'column' }}>
+                        <Typography variant="subtitle1" fontWeight="medium" sx={{ mb: 1, display: 'flex', alignItems: 'center' }}>
+                          <Output sx={{ mr: 1 }} fontSize="small" />
+                          Output Rules
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+                          Define the expected format and structure of translated data
+                        </Typography>
+                        <Box sx={{ mb: 2, flex: '0 0 auto' }}>
+                          <Typography variant="body2" color="text.secondary">
+                            Format
+                          </Typography>
+                          <TextField
+                            variant="standard"
+                            value={spec.definition?.output_rule?.content_type}
+                            onChange={(evn) => updateField("definition", {
+                              ...spec.definition,
+                              output_rule: {
+                                ...spec.definition?.output_rule,
+                                content_type: evn.target.value
+                              }
+                            })}
+                            disabled={!editMode}
+                            fullWidth
+                          />
+                        </Box>
+                        <Box sx={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column' }}>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            Schema
+                          </Typography>
+                          <Box
+                            sx={{
+                              border: 2,
+                              borderStyle: "dashed",
+                              borderColor: "divider",
+                              borderRadius: 1,
+                              p: 4,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "text.disabled",
+                              opacity: editMode ? 1 : 0.6,
+                              minHeight: 120,
+                              flex: '1 1 auto',
+                              cursor: editMode ? "pointer" : "default",
+                              transition: "all 0.2s ease-in-out",
+                              "&:hover": editMode ? {
+                                borderColor: "primary.main",
+                                backgroundColor: "action.hover"
+                              } : {}
+                            }}
+                          >
+                            <Stack spacing={1} alignItems="center">
+                              <Typography variant="body2" fontWeight="medium">
+                                Drag and drop a file here
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                or click to browse
+                              </Typography>
+                            </Stack>
+                          </Box>
+                        </Box>
+                      </Paper>
+                    </Grid>
+                  </Grid>
+                </TabPanel>
 
-            <Grid container spacing={2}>
-
-              <Grid item xs={12}>
-                {isCompiledArtifactEngine ?
+                {/* Tab 1: Instructions */}
+                <TabPanel value={tabValue} index={1}>
                   <Paper sx={{ p: 2 }}>
                     <Stack>
-                      <Grid container spacing={2} justifyContent={"space-between"} alignContent={"center"}>
-                        <Grid item>
-                          <Typography variant="subtitle1" fontWeight="medium" sx={{ mb: 2 }}>
-                            Test Cases
-                          </Typography>
-                        </Grid>
-                        <Grid item>
-                          <Grid container spacing={1}>
+                      <Tooltip
+                        title="Extra context is used to provide additional information to the translation process, either to generate the compiled artifact or during dynamic translation.">
+                        <Typography variant="subtitle1" fontWeight="medium" sx={{ mb: 1, display: 'flex', alignItems: 'center' }}>
+                          <InfoOutlined sx={{ mr: 1 }} fontSize="small" />
+                          Extra context
+                        </Typography>
+                      </Tooltip>
+                      <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+                        Provide additional instructions, examples, or context to guide the translation process
+                      </Typography>
+                      <Editor
+                        value={spec.definition?.extra_context}
+                        language="ini"
+                        onChange={(evn) => {
+                          updateField("definition", {
+                            ...spec.definition,
+                            extra_context: evn
+                          })
+                        }}
+                        height={400}
+                        theme="vs-dark"
+                        options={{
+                          readOnly: !editMode,
+                          minimap: { enabled: false },
+                          wordWrap: "on",
+                          lineNumbers: "on",
+                          scrollBeyondLastLine: false,
+                          automaticLayout: true
+                        }}
+                      />
+                    </Stack>
+                  </Paper>
+                </TabPanel>
 
-                            <Grid item>
-                              <Stack spacing={1}>
-                                {context.isRunningTestCases ? <CircularProgress /> : null}
+                {/* Tab 2: Tests */}
+                {isCompiledArtifactEngine && (
+                  <TabPanel value={tabValue} index={2}>
+                    <Paper sx={{ p: 2 }}>
+                      <Stack>
+                        <Grid container spacing={2} justifyContent={"space-between"} alignContent={"center"}>
+                          <Grid item>
+                            <Typography variant="subtitle1" fontWeight="medium" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+                              <Science sx={{ mr: 1 }} fontSize="small" />
+                              Test Cases
+                            </Typography>
+                          </Grid>
+                          <Grid item>
+                            <Grid container spacing={1}>
+                              <Grid item>
+                                <Stack spacing={1}>
+                                  {context.isRunningTestCases ? <CircularProgress /> : null}
 
-                                {!context.isRunningTestCases ?
-                                  <Tooltip title="Run Test Cases">
+                                  {!context.isRunningTestCases ?
+                                    <Tooltip title="Run Test Cases">
+                                      <Avatar
+                                        sx={{
+                                          bgcolor: "primary.main",
+                                          cursor: "pointer",
+                                          '&:hover': { bgcolor: "primary.dark" }, p: 3
+                                        }}
+                                        onClick={handleRunTestCases}
+                                      >
+                                        <Bolt />
+                                      </Avatar>
+                                    </Tooltip>
+                                    : null}
+                                </Stack>
+                              </Grid>
+
+                              <Grid item>
+                                <Stack spacing={1}>
+                                  {context.isGeneratingArtifact ? <CircularProgress /> : null}
+
+                                  {GenerateArtifactButton({ customMessage: "Generate Artifact", force: false })}
+
+                                  {context.artifact ? <Tooltip title="Open Artifact">
                                     <Avatar
                                       sx={{
                                         bgcolor: "primary.main",
                                         cursor: "pointer",
-                                        '&:hover': { bgcolor: "primary.dark" }, p: 3
+                                        '&:hover': { bgcolor: "primary.dark" },
+                                        p: 3
                                       }}
-                                      onClick={handleRunTestCases}
+                                      onClick={handleOpenArtifactDrawer}
                                     >
-                                      <Bolt />
+                                      <OpenInBrowser />
                                     </Avatar>
-                                  </Tooltip>
-                                  : null}
-
-                              </Stack>
-                            </Grid>
-
-                            <Grid item>
-                              <Stack spacing={1}>
-                                {context.isGeneratingArtifact ? <CircularProgress /> : null}
-
-                                {GenerateArtifactButton({ customMessage: "Generate Artifact", force: false })}
-
-                                {context.artifact ? <Tooltip title="Open Artifact">
+                                  </Tooltip> : null}
+                                </Stack>
+                              </Grid>
+                              <Grid item>
+                                <Tooltip title="Add Test Case">
                                   <Avatar
                                     sx={{
                                       bgcolor: "primary.main",
                                       cursor: "pointer",
-                                      '&:hover': { bgcolor: "primary.dark" },
-                                      p: 3
+                                      '&:hover': { bgcolor: "primary.dark" }, p: 3
                                     }}
-                                    onClick={handleOpenArtifactDrawer}
+                                    onClick={() => {
+                                      setOpen(true)
+                                    }}
                                   >
-                                    <OpenInBrowser />
+                                    <Add />
                                   </Avatar>
-                                </Tooltip> : null}
-                              </Stack>
-                            </Grid>
-                            <Grid item>
-                              <Tooltip title="Add Test Case">
-                                <Avatar
-                                  sx={{
-                                    bgcolor: "primary.main",
-                                    cursor: "pointer",
-                                    '&:hover': { bgcolor: "primary.dark" }, p: 3
-                                  }}
-                                  onClick={() => {
-                                    setOpen(true)
-                                  }}
-                                >
-                                  <Add />
-                                </Avatar>
-                              </Tooltip>
+                                </Tooltip>
+                              </Grid>
                             </Grid>
                           </Grid>
                         </Grid>
-                      </Grid>
 
-                      <SpecTestCasesList
-                        specId={spec.uuid} onSelectTestCase={handleOnSelectTestCase} />
-                    </Stack>
-
-                  </Paper>
-                  : null}
-              </Grid>
-            </Grid>
-
-            {/* Save Button */}
-            <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-              <Button variant="contained" color="primary" onClick={update}>
-                Save
-              </Button>
-            </Box>
+                        <SpecTestCasesList
+                          specId={spec.uuid} onSelectTestCase={handleOnSelectTestCase} />
+                      </Stack>
+                    </Paper>
+                  </TabPanel>
+                )}
+              </Paper>
+            </Fade>
           </Box>
         </div>
-        : null
-      }
+      ) : null}
+
+      {/* Cancel Confirmation Dialog */}
+      <Dialog open={showCancelDialog} onClose={() => setShowCancelDialog(false)}>
+        <DialogTitle>Discard changes?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            You have unsaved changes. Are you sure you want to discard them?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowCancelDialog(false)} color="primary">
+            Keep editing
+          </Button>
+          <Button onClick={doCancel} color="secondary" variant="contained">
+            Discard
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Artifact Drawer */}
       <Drawer
@@ -524,19 +733,19 @@ export default function SpecDetail() {
                     value={context.artifact?.implementation_str}
                     language="python"
                     height={"70vh"}
+                    theme="vs-dark"
+                    options={{
+                      readOnly: true,
+                      minimap: { enabled: false }
+                    }}
                   />
                   : null}
               </Stack>
-
               : null}
           </Paper>
-
         </Stack>
-
-
       </Drawer>
-
-    </Container >
+    </Container>
   )
 }
 

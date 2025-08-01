@@ -1,11 +1,11 @@
-import { Drawer, TextField, Button, Grid, Stack, Typography, Paper, Select, MenuItem, Box, Chip } from "@mui/material"
+import { Drawer, TextField, Button, Grid, Stack, Typography, Paper, Select, MenuItem, Box } from "@mui/material"
 import { useEffect, useState } from "react"
-import { NewSpecTestCase, SpecTestCaseDetail, SpecTestCaseStatus } from "../api/types"
+import { SpecTestCaseDetail, SpecTestCaseStatus } from "../api/types"
 import { createTestCase, deleteTestCase, getTestCase, updateTestCase } from "../api/specs"
 import { toast } from "react-toastify"
 import { Editor } from "@monaco-editor/react"
-import { set } from "date-fns"
 import { useSpecDetail } from "../pages/SpecDetailContext"
+import SpecTestCaseExecution from "./SpecTestCaseExecution"
 
 export interface SpecTestCaseDrawerProps {
     specId: string
@@ -198,22 +198,7 @@ export default function SpecTestCaseDrawer(props: SpecTestCaseDrawerProps) {
 
             {editableTestCase?.last_execution ?
                 <Grid item xs={12}>
-                    <Paper sx={{ padding: 2 }}>
-                        <Stack spacing={2}>
-                            <Box justifyContent={"space-between"} flexDirection={"row"} display={"flex"}>
-                                <Typography variant="h6">Last Execution</Typography>
-                                <Chip label={editableTestCase?.status} />
-                            </Box>
-                            <Editor
-                                height="200px"
-                                language="json"
-                                value={JSON.stringify(editableTestCase?.last_execution, null, 2) || ""}
-                                options={{
-                                    readOnly: true,
-                                    wordWrap: "on",
-                                }} />
-                        </Stack>
-                    </Paper>
+                    <SpecTestCaseExecution last_execution={editableTestCase.last_execution} />
                 </Grid>
 
                 : null}
