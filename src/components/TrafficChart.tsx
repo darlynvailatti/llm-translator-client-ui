@@ -1,5 +1,5 @@
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, type TooltipProps } from "recharts"
-import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent"
+import Highcharts from 'highcharts'
+import HighchartsReact from 'highcharts-react-official'
 import Box from "@mui/material/Box"
 import Paper from "@mui/material/Paper"
 import Typography from "@mui/material/Typography"
@@ -12,23 +12,8 @@ interface TrafficChartProps {
   compact?: boolean
 }
 
-const CustomTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameType>) => {
-  if (active && payload && payload.length) {
-    return (
-      <Paper elevation={3} sx={{ p: 1, zIndex: 1000 }}>
-        <Typography variant="body2" color="text.secondary">{`Time: ${new Date(label).toLocaleString()}`}</Typography>
-        <Typography variant="body2" color={MAIN_COLOR}>{`Success: ${payload[0].value}`}</Typography>
-        <Typography variant="body2" color={SECONDARY_COLOR}>{`Failed: ${payload[1].value}`}</Typography>
-      </Paper>
-    )
-  }
-
-  return null
-}
-
 export function TrafficChart({ data, height = 40, compact = false }: TrafficChartProps) {
-
-  const [series, setSeries] = useState<any[]>([])
+  const [chartOptions, setChartOptions] = useState<Highcharts.Options>({})
 
   useEffect(() => {
     const groupedData: any = {};
@@ -48,39 +33,102 @@ export function TrafficChart({ data, height = 40, compact = false }: TrafficChar
       });
     });
 
-    const processedSeries: any = []
+    const processedData: any[] = []
     Object.keys(groupedData).forEach((key) => {
-      const entry = { ...groupedData[key], name: parseInt(key) * 1000 };
+      const entry = { ...groupedData[key], timestamp: parseInt(key) * 1000 };
       if (entry.success !== 0 || entry.failure !== 0) {
-        processedSeries.push(entry);
+        processedData.push(entry);
       }
     });
 
-    setSeries(processedSeries);
-  }, [data])
+    // Sort by timestamp
+    processedData.sort((a, b) => a.timestamp - b.timestamp);
+
+    const successSeries = processedData.map(item => [item.timestamp, item.success]);
+    const failureSeries = processedData.map(item => [item.timestamp, item.failure]);
+
+    const options: Highcharts.Options = {
+      chart: {
+        type: 'line',
+        height: height,
+        backgroundColor: 'transparent',
+        style: {
+          fontFamily: 'inherit'
+        }
+      },
+      title: {
+        text: ''
+      },
+      xAxis: {
+        type: 'datetime',
+        labels: {
+          format: '{value:%H:%M:%S}',
+          style: {
+            fontSize: '10px'
+          }
+        },
+        tickInterval: 1000, // 1 second intervals
+        visible: !compact
+      },
+      yAxis: {
+        title: {
+          text: ''
+        },
+        labels: {
+          style: {
+            fontSize: '10px'
+          }
+        },
+        visible: !compact
+      },
+      tooltip: {
+        formatter: function() {
+          const date = new Date(this.x);
+          return `<b>${date.toLocaleString()}</b><br/>
+                  <span style="color: ${MAIN_COLOR}">Success: ${this.points?.[0]?.y || 0}</span><br/>
+                  <span style="color: ${SECONDARY_COLOR}">Failed: ${this.points?.[1]?.y || 0}</span>`;
+        },
+        shared: true
+      },
+      legend: {
+        enabled: false
+      },
+      plotOptions: {
+        line: {
+          marker: {
+            enabled: false
+          },
+          lineWidth: 2
+        }
+      },
+      series: [
+        {
+          name: 'Success',
+          data: successSeries,
+          color: MAIN_COLOR,
+          type: 'line'
+        },
+        {
+          name: 'Failed',
+          data: failureSeries,
+          color: SECONDARY_COLOR,
+          type: 'line'
+        }
+      ],
+      credits: {
+        enabled: false
+      }
+    };
+
+    setChartOptions(options);
+  }, [data, height, compact])
 
   return (
-    <Box >
-      {/* {JSON.stringify(series)} */}
-      <ResponsiveContainer width="100%" height={height}>
-        
-        <LineChart data={series}>
-
-          {compact && <XAxis hide />}
-
-          {!compact && <XAxis
-            dataKey="name"
-            type="number"
-            domain={['dataMin', 'dataMax']}
-            tickFormatter={(tick) => new Date(tick).toLocaleString()}
-          />}
-
-          <YAxis hide />
-          <Tooltip content={<CustomTooltip />} />
-          <Line type="monotone" dataKey="success" stroke={MAIN_COLOR} strokeWidth={2} dot={false} />
-          <Line type="monotone" dataKey="failure" stroke={SECONDARY_COLOR} strokeWidth={2} dot={false} />
-        </LineChart>
-      </ResponsiveContainer>
+    <Box>
+      <HighchartsReact
+        highcharts={Highcharts}
+        options={chartOptions}
+      />
     </Box>
   )
 }

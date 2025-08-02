@@ -444,36 +444,34 @@ export default function SpecDetail() {
                           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                             Schema
                           </Typography>
-                          <Box
-                            sx={{
-                              border: 2,
-                              borderStyle: "dashed",
-                              borderColor: "divider",
-                              borderRadius: 1,
-                              p: 4,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color: "text.disabled",
-                              opacity: editMode ? 1 : 0.6,
-                              minHeight: 120,
-                              flex: '1 1 auto',
-                              cursor: editMode ? "pointer" : "default",
-                              transition: "all 0.2s ease-in-out",
-                              "&:hover": editMode ? {
-                                borderColor: "primary.main",
-                                backgroundColor: "action.hover"
-                              } : {}
-                            }}
-                          >
-                            <Stack spacing={1} alignItems="center">
-                              <Typography variant="body2" fontWeight="medium">
-                                Drag and drop a file here
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                or click to browse
-                              </Typography>
-                            </Stack>
+                          <Typography variant="caption" color="text.secondary" sx={{ mb: 1, fontStyle: 'italic' }}>
+                            Here you can paste your existing schema or just write specific constraints in plain-English
+                          </Typography>
+                          <Box sx={{ flex: '1 1 auto', minHeight: 120 }}>
+                            <Editor
+                              value={spec.definition?.input_rule?.schema_ || ''}
+                              language="json"
+                              onChange={(value) => {
+                                updateField("definition", {
+                                  ...spec.definition,
+                                  input_rule: {
+                                    ...spec.definition?.input_rule,
+                                    schema_: value
+                                  }
+                                })
+                              }}
+                              height="200px"
+                              theme="vs-dark"
+                              options={{
+                                readOnly: !editMode,
+                                minimap: { enabled: false },
+                                wordWrap: "on",
+                                lineNumbers: "on",
+                                scrollBeyondLastLine: false,
+                                automaticLayout: true,
+                                fontSize: 12
+                              }}
+                            />
                           </Box>
                         </Box>
                       </Paper>
@@ -511,36 +509,34 @@ export default function SpecDetail() {
                           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                             Schema
                           </Typography>
-                          <Box
-                            sx={{
-                              border: 2,
-                              borderStyle: "dashed",
-                              borderColor: "divider",
-                              borderRadius: 1,
-                              p: 4,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color: "text.disabled",
-                              opacity: editMode ? 1 : 0.6,
-                              minHeight: 120,
-                              flex: '1 1 auto',
-                              cursor: editMode ? "pointer" : "default",
-                              transition: "all 0.2s ease-in-out",
-                              "&:hover": editMode ? {
-                                borderColor: "primary.main",
-                                backgroundColor: "action.hover"
-                              } : {}
-                            }}
-                          >
-                            <Stack spacing={1} alignItems="center">
-                              <Typography variant="body2" fontWeight="medium">
-                                Drag and drop a file here
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                or click to browse
-                              </Typography>
-                            </Stack>
+                          <Typography variant="caption" color="text.secondary" sx={{ mb: 1, fontStyle: 'italic' }}>
+                            Here you can paste your existing schema or just write specific constraints in plain-English
+                          </Typography>
+                          <Box sx={{ flex: '1 1 auto', minHeight: 120 }}>
+                            <Editor
+                              value={spec.definition?.output_rule?.schema_ || ''}
+                              language="json"
+                              onChange={(value) => {
+                                updateField("definition", {
+                                  ...spec.definition,
+                                  output_rule: {
+                                    ...spec.definition?.output_rule,
+                                    schema_: value
+                                  }
+                                })
+                              }}
+                              height="200px"
+                              theme="vs-dark"
+                              options={{
+                                readOnly: !editMode,
+                                minimap: { enabled: false },
+                                wordWrap: "on",
+                                lineNumbers: "on",
+                                scrollBeyondLastLine: false,
+                                automaticLayout: true,
+                                fontSize: 12
+                              }}
+                            />
                           </Box>
                         </Box>
                       </Paper>
